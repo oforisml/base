@@ -6,6 +6,7 @@ const nodeVersion = "20";
 
 const project = new cdk.JsiiProject({
   name: "@envtio/base",
+  npmAccess: javascript.NpmAccess.PUBLIC,
   author: "Vincent De Smet",
   authorAddress: "vincent.drl@gmail.com",
   repositoryUrl: "https://github.com/envtio/base",
