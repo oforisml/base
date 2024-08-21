@@ -1,2 +1,5 @@
-export * as aws from "./aws"; // aws specific
 export * from "./beacon-base";
+export * from "./spec-base";
+
+// cloud specific exports
+export * as aws from "./aws";

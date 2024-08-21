@@ -1,0 +1,84 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Function Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "HelloWorld_LogGroup_948040CF": {
+        "name": "/aws/lambda/123e4567-e89b-12d3-HelloWorld",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "HelloWorld_ServiceRole_F3F7D8B0": {
+        "assume_role_policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":[\\"sts:AssumeRole\\",\\"sts:SetSourceIdentity\\"],\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"Service\\":[\\"lambda.amazonaws.com\\"]}}]}",
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "name_prefix": "123e4567-e89b-12d3",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_lambda_function": {
+      "HelloWorld_7964D1E8": {
+        "depends_on": [
+          "aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
+        "function_name": "123e4567-e89b-12d3-HelloWorld",
+        "handler": "hello-world.handler",
+        "memory_size": 512,
+        "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
+        "runtime": "nodejs20.x",
+        "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "timeout": 600
+      }
+    }
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.60.0"
+      }
+    }
+  }
+}"
+`;

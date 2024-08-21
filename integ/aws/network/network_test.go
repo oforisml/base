@@ -1,0 +1,189 @@
+package test
+
+import (
+	"context"
+	"os"
+	"path/filepath"
+	"strings"
+	"testing"
+
+	"github.com/environment-toolkit/go-synth"
+	"github.com/environment-toolkit/go-synth/executors"
+	"github.com/environment-toolkit/go-synth/models"
+	loggers "github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/stretchr/testify/require"
+
+	"github.com/gruntwork-io/terratest/modules/aws"
+	"github.com/gruntwork-io/terratest/modules/terraform"
+	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+	"github.com/spf13/afero"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
+)
+
+var terratestLogger = loggers.Default
+
+const (
+	// path from integ/aws/network to repo root
+	pathToRoot = "../../../"
+	// copy the root as local package for bun install
+	targetDir = "./envtio/base"
+)
+
+var (
+	// Directories to skip when copying files to the synth app fs
+	defaultCopyOptions = models.CopyOptions{
+		SkipDirs: []string{
+			"integ", // ignore self - prevent recursive loops
+			"src",   // package.json entrypoint is lib/index.js!
+			".git",
+			".github",
+			".vscode",
+			".projen",
+			"projenrc",
+			"node_modules",
+			"test-reports",
+			"dist",
+			"test",
+			"coverage",
+		},
+	}
+)
+
+// Test the simple-ipv4-vpc app
+func TestSimpleIPv4Vpc(t *testing.T) {
+	t.Parallel()
+	testName := "simple-ipv4-vpc"
+	tfWorkingDir := filepath.Join("tf", testName)
+	awsRegion := "us-east-1" // this must match simple-ipv4-vpc.ts config
+
+	// At the end of the test, destroy all the resources
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		undeployUsingTerraform(t, tfWorkingDir)
+	})
+
+	// Synth the CDKTF app under test
+	test_structure.RunTestStage(t, "synth_app", func() {
+		synthApp(t, testName, tfWorkingDir)
+	})
+
+	// Deploy using Terraform
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		deployUsingTerraform(t, tfWorkingDir)
+	})
+
+	// Validate the network connectivity
+	test_structure.RunTestStage(t, "validate", func() {
+		testLambdaInvocations(t, awsRegion, tfWorkingDir)
+	})
+
+}
+
+func synthApp(t *testing.T, testName string, tfWorkingDir string) {
+	zapLogger := forwardingLogger(t, terratestLogger)
+	ctx := context.Background()
+	// path from integ/aws/network/apps/*.ts to repo root src
+	mainPathToSrc := filepath.Join("..", pathToRoot, "src")
+	if _, err := os.Stat(filepath.Join(pathToRoot, "lib")); err != nil {
+		t.Fatal("No lib folder, run pnpm compile before go test")
+	}
+	handlersDir := filepath.Join("apps", "handlers")
+	mainTsFile := filepath.Join("apps", testName+".ts")
+	mainTsBytes, err := os.ReadFile(mainTsFile)
+	if err != nil {
+		t.Fatal("Failed to read" + mainTsFile)
+	}
+	mainTs := strings.ReplaceAll(string(mainTsBytes), mainPathToSrc, "@envtio/base")
+
+	thisFs := afero.NewOsFs()
+	app := synth.NewApp(executors.NewBunExecutor, zapLogger)
+	app.Configure(ctx, models.AppConfig{
+		// copy handlers and @envtio/base to synth App fs
+		PreSetupFn: func(e models.Executor) error {
+			if err := e.CopyFrom(ctx, thisFs, handlersDir, "handlers", defaultCopyOptions); err != nil {
+				return err
+			}
+			return e.CopyFrom(ctx, thisFs, pathToRoot, targetDir, defaultCopyOptions)
+		},
+		Dependencies: map[string]string{
+			"@envtio/base": targetDir,
+		},
+	})
+	err = app.Eval(ctx, thisFs, mainTs, "cdktf.out/stacks/"+testName, tfWorkingDir)
+	if err != nil {
+		t.Fatal("Failed to synth app", err)
+	}
+}
+
+func deployUsingTerraform(t *testing.T, workingDir string) {
+	// Construct the terraform options with default retryable errors to handle the most common retryable errors in
+	// terraform testing.
+	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
+		TerraformDir: workingDir,
+	})
+
+	// Save the Terraform Options struct, so future test stages can use it
+	test_structure.SaveTerraformOptions(t, workingDir, terraformOptions)
+	terraform.InitAndApply(t, terraformOptions)
+}
+
+func undeployUsingTerraform(t *testing.T, workingDir string) {
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	terraform.Destroy(t, terraformOptions)
+}
+
+// fetchFunctionPayload is the payload for the fetch function
+type fetchFunctionPayload struct {
+	URL string `json:"url"`
+}
+
+// ensure all fetch functions can be invoked correctly
+func testLambdaInvocations(t *testing.T, awsRegion string, workingDir string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
+	echoOutputMap := terraform.OutputMap(t, terraformOptions, "echo")
+	fetchFunctionOutputs := []string{"data_fetch_ip_0", "data_fetch_ip_1", "private_fetch_ip_0", "private_fetch_ip_1"}
+
+	for _, fetchFunctionOutput := range fetchFunctionOutputs {
+		outputMap := terraform.OutputMap(t, terraformOptions, fetchFunctionOutput)
+		response, err := aws.InvokeFunctionE(t, awsRegion, outputMap["name"], fetchFunctionPayload{
+			URL: echoOutputMap["url"],
+		})
+		require.NoError(t, err)
+		terratestLogger.Logf(t, "Response from %s: %v", outputMap["name"], string(response))
+	}
+}
+
+// forwardingLogger returns a zap logger that forwards all log messages to terratestLogger
+func forwardingLogger(t *testing.T, targetLogger *loggers.Logger) *zap.Logger {
+	config := zap.NewProductionConfig()
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(config.EncoderConfig),
+		zapcore.AddSync(zapcore.Lock(os.Stdout)),
+		config.Level,
+	)
+
+	forwardingCore := &ForwardingCore{
+		Core:         core,
+		t:            t,
+		targetLogger: targetLogger,
+	}
+
+	return zap.New(forwardingCore)
+}
+
+// a simple Zap Logger which forwards all log messages to terratestLogger
+type ForwardingCore struct {
+	zapcore.Core
+	t            *testing.T
+	targetLogger *loggers.Logger
+}
+
+func (fc *ForwardingCore) Check(e zapcore.Entry, ce *zapcore.CheckedEntry) *zapcore.CheckedEntry {
+	return ce.AddCore(e, fc)
+}
+
+func (fc *ForwardingCore) Write(entry zapcore.Entry, fields []zapcore.Field) error {
+	fc.targetLogger.Logf(fc.t, "[%s] %s", entry.Level, entry.Message)
+	return nil
+}

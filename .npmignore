@@ -23,6 +23,7 @@ dist
 tsconfig.tsbuildinfo
 /.eslintrc.json
 !.jsii
+/integ/
 /.gitattributes
 /.projenrc.ts
 /projenrc
