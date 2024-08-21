@@ -15,14 +15,14 @@ import {
   DbSubnetGroup,
   ElastiCacheSubnetGroup,
 } from "./subnet-group";
-import { AwsBeaconBase, AwsBeaconProps } from "../";
+import { AwsBeaconBase, AwsBeaconProps } from "..";
 
 export enum NatGatewayOption {
   SINGLE_NAT_GATEWAY = "single-nat-gateway",
   NAT_PER_AVAILABILITY_ZONE = "nat-per-availability-zone",
 }
 
-export interface SimpleIPv4Config {
+export interface SimpleIPv4Props extends AwsBeaconProps {
   /**
    * The number of availability zones to use.
    *
@@ -45,10 +45,6 @@ export interface SimpleIPv4Config {
   readonly internalDomain: string;
 }
 
-export interface SimpleIPv4Props extends AwsBeaconProps {
-  readonly config: SimpleIPv4Config;
-}
-
 /**
  * Define an AWS Virtual Private Cloud simple IPv4 network.
  *
@@ -59,8 +55,6 @@ export interface SimpleIPv4Props extends AwsBeaconProps {
  *
  * ```ts
  * const network = new network.SimpleIPv4(stack, "network", {
- *   environmentName,
- *   gridUUID,
  *   config: {
  *     ipv4CidrBlock: "10.0.0.0/16",
  *     internalDomain: "example.local",
@@ -72,13 +66,10 @@ export interface SimpleIPv4Props extends AwsBeaconProps {
  * ```
  *
  * @resource aws_vpc
- * @beacon-class network.SimpleIPv4
+ * @beacon-class network.SimpleIPv4Vpc
  */
-export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
-  private readonly _config: SimpleIPv4Config;
-  public get networkConfig(): SimpleIPv4Config {
-    return this._config;
-  }
+export class SimpleIPv4Vpc extends AwsBeaconBase implements INetwork {
+  private readonly _props: SimpleIPv4Props;
   private readonly _outputs: NetworkOutputs;
   public get networkOutputs(): NetworkOutputs {
     return this._outputs;
@@ -127,14 +118,14 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
 
   constructor(scope: Construct, id: string, props: SimpleIPv4Props) {
     super(scope, id, props);
-    this._config = props.config;
-    this.azCount = this._config.azCount ?? 2;
+    this._props = props;
+    this.azCount = this._props.azCount ?? 2;
     if (this.azCount > 4) {
       throw new Error("azCount must be less than or equal to 4");
     }
 
     this.availabilityZones = this.stack.availabilityZones(this.azCount);
-    this.ipv4CidrBlock = this._config.ipv4CidrBlock;
+    this.ipv4CidrBlock = this._props.ipv4CidrBlock;
     this.vpc = new vpc.Vpc(this, "Resource", {
       cidrBlock: this.ipv4CidrBlock,
       enableDnsSupport: true,
@@ -163,7 +154,7 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
     });
 
     this.natGatewayOption =
-      this._config.natGatewayOption ??
+      this._props.natGatewayOption ??
       NatGatewayOption.NAT_PER_AVAILABILITY_ZONE;
 
     this.createPublicSubnets(Fn.cidrsubnet(this.ipv4CidrBlock, 2, 0));
@@ -175,7 +166,7 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
         this,
         "ServiceDiscoveryNamespace",
         {
-          name: this._config.internalDomain,
+          name: this._props.internalDomain,
           vpc: this.vpc.id,
           description: `Private DNS namespace for ${this.friendlyName}`,
           tags: {
@@ -206,8 +197,6 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
       return;
     }
     this._dbSubnetGroup = new DbSubnetGroup(this, "DbSubnetGroup", {
-      gridUUID: this.gridUUID,
-      environmentName: this.environmentName,
       subnets: this._dataSubnets,
       tags: {
         Name: `${this.friendlyName}-db-default-subnet-group`,
@@ -223,8 +212,6 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
       this,
       "ElastiCacheSubnetGroup",
       {
-        gridUUID: this.gridUUID,
-        environmentName: this.environmentName,
         subnets: this._dataSubnets,
         tags: {
           Name: `${this.friendlyName}-elasticache-default-subnet-group`,
@@ -241,8 +228,6 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
         i === 0;
       const availabilityZone = Fn.element(this.availabilityZones, i);
       const publicSubnet = new PublicSubnet(this, `PublicSubnet${i}`, {
-        gridUUID: this.gridUUID,
-        environmentName: this.environmentName,
         vpc: this.vpc,
         availabilityZone,
         ipv4CidrBlock: Fn.cidrsubnet(publicIpv4CidrBlock, 2, i),
@@ -284,8 +269,6 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
       const availabilityZone = Fn.element(this.availabilityZones, i);
       const rtbIdx = this.privateRouteTables.length >= this.azCount ? i : 0;
       const privateSubnet = new PrivateSubnet(this, `PrivateSubnet${i}`, {
-        gridUUID: this.gridUUID,
-        environmentName: this.environmentName,
         vpc: this.vpc,
         availabilityZone,
         ipv4CidrBlock: Fn.cidrsubnet(privateIpv4CidrBlock, 2, i),
@@ -307,8 +290,6 @@ export class SimpleIPv4 extends AwsBeaconBase implements INetwork {
       const rtbIdx = this.privateRouteTables.length >= this.azCount ? i : 0;
       const dataSubnet = new DataSubnet(this, `DataSubnet${i}`, {
         vpc: this.vpc,
-        gridUUID: this.gridUUID,
-        environmentName: this.environmentName,
         availabilityZone,
         ipv4CidrBlock: Fn.cidrsubnet(dataIpv4CidrBlock, 2, i),
         routeTable: this.privateRouteTables[rtbIdx],

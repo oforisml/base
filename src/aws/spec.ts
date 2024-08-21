@@ -14,17 +14,18 @@ import {
 } from "cdktf";
 import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat, AwsProviderConfig } from ".";
+import { SpecBaseProps, SpecBase, ISpec } from "../";
 
 const AWS_SPEC_SYMBOL = Symbol.for("@envtio/base/lib/aws/AwsSpec");
 
-export interface AwsSpecProps {
+export interface AwsSpecProps extends SpecBaseProps {
   /**
    * The AWS Provider configuration (without the alias field)
    */
   readonly providerConfig: AwsProviderConfig;
 }
 
-export interface IAwsSpec {
+export interface IAwsSpec extends ISpec {
   /**
    * The AWS Region for the beacon
    */
@@ -54,7 +55,7 @@ interface AwsLookup {
 /**
  * A Terraform stack constrained to a single AWS Account/Region to simulate CFN behavior.
  */
-export class AwsSpec extends TerraformStack implements IAwsSpec {
+export class AwsSpec extends SpecBase implements IAwsSpec {
   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L204
 
   /**
@@ -69,7 +70,7 @@ export class AwsSpec extends TerraformStack implements IAwsSpec {
   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L212
 
   /**
-   * Looks up the first stack scope in which `construct` is defined. Fails if there is no stack up the tree or the stack is not an AwsBeacon.
+   * Looks up the first stack scope in which `construct` is defined. Fails if there is no stack up the tree or the stack is not an AwsSpec.
    * @param construct The construct to start the search from.
    */
   public static ofAwsBeacon(construct: IConstruct): AwsSpec {
@@ -78,14 +79,14 @@ export class AwsSpec extends TerraformStack implements IAwsSpec {
       return s;
     }
     throw new Error(
-      `Resource '${construct.constructor?.name}' at '${construct.node.path}' should be created in the scope of an AwsBeacon, but no AwsBeacon found`,
+      `Resource '${construct.constructor?.name}' at '${construct.node.path}' should be created in the scope of an AwsSpec, but no AwsSpec found`,
     );
   }
 
   private readonly lookup: AwsLookup;
 
   constructor(scope: Construct, id: string, props: AwsSpecProps) {
-    super(scope, id);
+    super(scope, id, props);
     this.lookup = {
       awsProvider: new provider.AwsProvider(
         this,

@@ -21,5 +21,8 @@
 /LICENSE linguist-generated
 /package.json linguist-generated
 /pnpm-lock.yaml linguist-generated
+/src/aws/compute/function-vpc-config.generated.ts linguist-generated
+/src/aws/compute/permission-config.generated.ts linguist-generated
+/src/aws/compute/url-config.generated.ts linguist-generated
 /src/aws/provider-config.generated.ts linguist-generated
 /tsconfig.dev.json linguist-generated

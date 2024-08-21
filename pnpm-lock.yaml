@@ -7,10 +7,20 @@ settings:
 importers:
 
   .:
+    dependencies:
+      esbuild-wasm:
+        specifier: ^0.23.1
+        version: 0.23.1
+      iam-floyd:
+        specifier: ^0.658.0
+        version: 0.658.0
     devDependencies:
       '@cdktf/provider-aws':
         specifier: 19.28.0
         version: 19.28.0(cdktf@0.20.8(constructs@10.3.0))(constructs@10.3.0)
+      '@jsii/spec':
+        specifier: ^1.102.0
+        version: 1.102.0
       '@mrgrain/jsii-struct-builder':
         specifier: ^0.7.38
         version: 0.7.40(projen@0.84.13(constructs@10.3.0))
@@ -538,6 +548,9 @@ packages:
   '@typescript-eslint/visitor-keys@7.18.0':
     resolution: {integrity: sha512-cDF0/Gf81QpY3xYyJKDV14Zwdmid5+uuENhjH2EqFaF0ni+yAyq/LzMaIJdhNJXZI7uLzwIlA+V7oWoyn6Curg==}
     engines: {node: ^18.18.0 || >=20.0.0}
+
+  '@udondan/common-substrings@3.0.2':
+    resolution: {integrity: sha512-Sc8lNnubj2NtH6zj13K8ADohTnwvXBSp6NWV0LDvia/xfIGHvOhKOHjL7AM9+5lVL3LcIHl85mwpn9LYYhyxuw==}
 
   '@ungap/structured-clone@1.2.0':
     resolution: {integrity: sha512-zuVdFrMJiuCDQUMCzQaD6KL28MjnqqN8XnAqiEq9PNm/hCPTSGfrXCOfwj1ow4LFb/tNymJPwsNbVePc1xFqrQ==}
@@ -1073,6 +1086,11 @@ packages:
     resolution: {integrity: sha512-QCOllgZJtaUo9miYBcLChTUaHNjJF3PYs1VidD7AwiEj1kYxKeQTctLAezAOH5ZKRH0g2IgPn6KwB4IT8iRpvA==}
     engines: {node: '>= 0.4'}
 
+  esbuild-wasm@0.23.1:
+    resolution: {integrity: sha512-L3vn7ctvBrtScRfoB0zG1eOCiV4xYvpLYWfe6PDZuV+iDFDm4Mt3xeLIDllG8cDHQ8clUouK3XekulE+cxgkgw==}
+    engines: {node: '>=18'}
+    hasBin: true
+
   escalade@3.1.2:
     resolution: {integrity: sha512-ErCHMCae19vR8vQGe50xIsVomy19rg6gFu3+r3jkEO46suLMWBksvVyoGgQV+jOfl84ZSOSlmv6Gxa89PmTGmA==}
     engines: {node: '>=6'}
@@ -1430,6 +1448,9 @@ packages:
   human-signals@2.1.0:
     resolution: {integrity: sha512-B4FFZ6q/T2jhhksgkbEW3HBvWIfDW85snkQgawt07S7J5QXTk6BkNV+0yAeZrM5QpMAdYlocGoljn0sJ/WQkFw==}
     engines: {node: '>=10.17.0'}
+
+  iam-floyd@0.658.0:
+    resolution: {integrity: sha512-1nR92A1d6FHrBZU9p1RCZMiD7mDT2KrODXQboNPs7BA9Mfs6EcdvdEt4B/mvWnQxANkr2pZdFJyK1Ofm2igCJg==}
 
   ignore@5.3.2:
     resolution: {integrity: sha512-hsBTNUqQTDwkWtcdYI2i06Y/nUBEsNEDJKjWdigLvegy8kDuJAS8uRlpkkcQpyEXL0Z/pjDy5HBmMjRCJ2gq+g==}
@@ -2236,6 +2257,9 @@ packages:
     resolution: {integrity: sha512-6tDA8g98We0zd0GvVeMT9arEOnTw9qM03L9cJXaCjrip1OO764RDBLBfrB4cwzNGDj5OA5ioymC9GkizgWJDUg==}
     engines: {node: '>=8'}
 
+  regex-parser@2.3.0:
+    resolution: {integrity: sha512-TVILVSz2jY5D47F4mA4MppkBrafEaiUWJO/TcZHEIuI13AqoZMkK1WMA4Om1YkYbTx+9Ki1/tSUXbceyr9saRg==}
+
   regexp.prototype.flags@1.5.2:
     resolution: {integrity: sha512-NcDiDkTLuPR+++OCKB0nWafEmhg/Da8aUPLPMQbK+bxKKCm1/S5he+AqYa4PlMCVBalb4/yxIRub6qkEx5yJbw==}
     engines: {node: '>= 0.4'}
@@ -2620,8 +2644,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.6.0-dev.20240812:
-    resolution: {integrity: sha512-TR3m7teVCHUhgqmFTj3TKFevzF4GMWOvesnhjWlBfUn3TRy4Z3xhJ9FzxzeEfupEqNWOagszD1Q0Ym46BtyE2g==}
+  typescript@5.7.0-dev.20240821:
+    resolution: {integrity: sha512-0Fy9p2k7DxC6OWPSXqJbrzkaxL4R7N+VRaxHnFeWnYSqwLfKQTX2JeARy+MGcSphRP9KKe/DtMGXYdoULHjMHw==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -3369,6 +3393,8 @@ snapshots:
       '@typescript-eslint/types': 7.18.0
       eslint-visitor-keys: 3.4.3
 
+  '@udondan/common-substrings@3.0.2': {}
+
   '@ungap/structured-clone@1.2.0': {}
 
   '@xmldom/xmldom@0.8.10': {}
@@ -3915,7 +3941,7 @@ snapshots:
     dependencies:
       semver: 7.6.3
       shelljs: 0.8.5
-      typescript: 5.6.0-dev.20240812
+      typescript: 5.7.0-dev.20240821
 
   ejs@3.1.10:
     dependencies:
@@ -4012,6 +4038,8 @@ snapshots:
       is-callable: 1.2.7
       is-date-object: 1.0.5
       is-symbol: 1.0.4
+
+  esbuild-wasm@0.23.1: {}
 
   escalade@3.1.2: {}
 
@@ -4431,6 +4459,11 @@ snapshots:
   html-escaper@2.0.2: {}
 
   human-signals@2.1.0: {}
+
+  iam-floyd@0.658.0:
+    dependencies:
+      '@udondan/common-substrings': 3.0.2
+      regex-parser: 2.3.0
 
   ignore@5.3.2: {}
 
@@ -5419,6 +5452,8 @@ snapshots:
       indent-string: 4.0.0
       strip-indent: 3.0.0
 
+  regex-parser@2.3.0: {}
+
   regexp.prototype.flags@1.5.2:
     dependencies:
       call-bind: 1.0.7
@@ -5812,7 +5847,7 @@ snapshots:
 
   typescript@5.4.5: {}
 
-  typescript@5.6.0-dev.20240812: {}
+  typescript@5.7.0-dev.20240821: {}
 
   uglify-js@3.19.2:
     optional: true

@@ -1,5 +1,10 @@
 import { cdk, javascript, TextFile } from "projen";
-import { AwsProviderStructBuilder } from "./projenrc/aws-provider-struct-builder";
+import {
+  AwsProviderStructBuilder,
+  LambdaFunctionUrlConfigStructBuilder,
+  LambdaPermissionConfigStructBuilder,
+  LambdaFunctionVpcConfigStructBuilder,
+} from "./projenrc";
 
 // set strict node version
 const nodeVersion = "20";
@@ -35,10 +40,28 @@ const project = new cdk.JsiiProject({
     "cdktf@^0.20.8",
     "@cdktf/provider-aws@^19.28.0",
     "constructs@^10.3.0",
+    "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
   ],
+  // deps: ["iam-floyd@^0.658.0"],
+  bundledDeps: ["esbuild-wasm@^0.23.1", "iam-floyd@^0.658.0"],
 
   workflowNodeVersion: nodeVersion,
+  workflowBootstrapSteps: [
+    {
+      uses: "oven-sh/setup-bun@v1",
+      with: {
+        "bun-version": "1.1.10",
+      },
+    },
+    {
+      uses: "hashicorp/setup-terraform@v3",
+      with: {
+        terraform_wrapper: false,
+        terraform_version: "1.9.4",
+      },
+    },
+  ],
 
   jestOptions: {
     jestConfig: {
@@ -64,6 +87,9 @@ project.tryFindObjectFile("package.json")?.addOverride("jest.testMatch", [
 
 project.gitignore.exclude(".env");
 
+// exclude the integration tests from the npm package
+project.npmignore?.addPatterns("/integ/");
+
 project.package.addEngine("node", nodeVersion);
 new TextFile(project, ".nvmrc", {
   lines: [nodeVersion],
@@ -74,5 +100,8 @@ new TextFile(project, ".nvmrc", {
 project.npmrc?.addConfig("node-linker", "hoisted");
 
 new AwsProviderStructBuilder(project);
+new LambdaPermissionConfigStructBuilder(project);
+new LambdaFunctionUrlConfigStructBuilder(project);
+new LambdaFunctionVpcConfigStructBuilder(project);
 
 project.synth();

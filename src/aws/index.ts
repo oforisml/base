@@ -7,4 +7,6 @@ export * from "./spec";
 export * from "./provider-config.generated";
 
 // classes
+// export * as iam from "./iam";
+export * as compute from "./compute";
 export * as network from "./network";

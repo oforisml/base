@@ -54,3 +54,6 @@ tsconfig.json
 !/.nvmrc
 !/.projenrc.ts
 !/src/aws/provider-config.generated.ts
+!/src/aws/compute/permission-config.generated.ts
+!/src/aws/compute/url-config.generated.ts
+!/src/aws/compute/function-vpc-config.generated.ts

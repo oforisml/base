@@ -8,45 +8,41 @@ const providerConfig = { region: "us-east-1" };
 describe("Environment", () => {
   test("Should synth and match SnapShot", () => {
     // GIVEN
-    const app = Testing.app();
-    const spec = new AwsSpec(app, "TestSpec", {
-      providerConfig,
-    });
+    const spec = getAwsSpec();
     // WHEN
-    new network.SimpleIPv4(spec, "network", {
-      environmentName,
-      gridUUID,
-      config: {
-        ipv4CidrBlock: "10.0.0.0/16",
-        internalDomain: "example.local",
-      },
+    new network.SimpleIPv4Vpc(spec, "network", {
+      ipv4CidrBlock: "10.0.0.0/16",
+      internalDomain: "example.local",
     });
     // THEN
     expect(Testing.synth(spec)).toMatchSnapshot();
   });
   test("Should support adding subnet groups", () => {
     // GIVEN
-    const app = Testing.app();
-    const spec = new AwsSpec(app, "TestSpec", {
-      providerConfig,
-    });
+    const spec = getAwsSpec();
     // WHEN
-    const vpc = new network.SimpleIPv4(spec, "network", {
-      environmentName,
-      gridUUID,
-      config: {
-        ipv4CidrBlock: "10.0.0.0/16",
-        internalDomain: "example.local",
-      },
+    const vpc = new network.SimpleIPv4Vpc(spec, "network", {
+      ipv4CidrBlock: "10.0.0.0/16",
+      internalDomain: "example.local",
     });
     vpc.enableDbSubnetGroup();
     vpc.enableElastiCacheSubnetGroup();
     // THEN
-    expect(Testing.synth(spec)).toHaveResource({
+    const result = Testing.synth(spec);
+    expect(result).toHaveResource({
       tfResourceType: "aws_db_subnet_group",
     });
-    expect(Testing.synth(spec)).toHaveResource({
+    expect(result).toHaveResource({
       tfResourceType: "aws_elasticache_subnet_group",
     });
   });
 });
+
+function getAwsSpec(): AwsSpec {
+  const app = Testing.app();
+  return new AwsSpec(app, "TestSpec", {
+    environmentName,
+    gridUUID,
+    providerConfig,
+  });
+}

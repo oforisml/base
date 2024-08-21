@@ -16,6 +16,9 @@
     ".projen/files.json",
     ".projen/tasks.json",
     "LICENSE",
+    "src/aws/compute/function-vpc-config.generated.ts",
+    "src/aws/compute/permission-config.generated.ts",
+    "src/aws/compute/url-config.generated.ts",
     "src/aws/provider-config.generated.ts",
     "tsconfig.dev.json"
   ],

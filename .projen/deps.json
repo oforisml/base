@@ -6,6 +6,11 @@
       "type": "build"
     },
     {
+      "name": "@jsii/spec",
+      "version": "^1.102.0",
+      "type": "build"
+    },
+    {
       "name": "@mrgrain/jsii-struct-builder",
       "type": "build"
     },
@@ -111,6 +116,16 @@
       "name": "typescript",
       "version": "~5.4",
       "type": "build"
+    },
+    {
+      "name": "esbuild-wasm",
+      "version": "^0.23.1",
+      "type": "bundled"
+    },
+    {
+      "name": "iam-floyd",
+      "version": "^0.658.0",
+      "type": "bundled"
     },
     {
       "name": "@cdktf/provider-aws",

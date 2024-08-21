@@ -19,6 +19,13 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.1.10
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+          terraform_version: 1.9.4
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -107,6 +114,13 @@ jobs:
       - name: Restore build artifact permissions
         run: cd dist && setfacl --restore=permissions-backup.acl
         continue-on-error: true
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.1.10
+      - uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_wrapper: false
+          terraform_version: 1.9.4
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
