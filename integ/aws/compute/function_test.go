@@ -10,11 +10,12 @@ import (
 	"github.com/environment-toolkit/go-synth"
 	"github.com/environment-toolkit/go-synth/executors"
 	"github.com/environment-toolkit/go-synth/models"
-	util "github.com/envtio/base/integ/aws"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/gruntwork-io/terratest/modules/aws"
+	util "github.com/envtio/base/integ/aws"
+	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 	"github.com/spf13/afero"
@@ -50,9 +51,9 @@ var (
 )
 
 // Test the simple-ipv4-vpc app
-func TestSimpleIPv4Vpc(t *testing.T) {
+func TestNodeJsFunctionUrl(t *testing.T) {
 	t.Parallel()
-	testApp := "simple-ipv4-vpc"
+	testApp := "nodejs-function-url"
 	tfWorkingDir := filepath.Join("tf", testApp)
 	awsRegion := "us-east-1"
 
@@ -76,17 +77,27 @@ func TestSimpleIPv4Vpc(t *testing.T) {
 		deployUsingTerraform(t, tfWorkingDir)
 	})
 
-	// Validate the network connectivity
+	// Validate the function URL
 	test_structure.RunTestStage(t, "validate", func() {
-		testLambdaInvocations(t, awsRegion, tfWorkingDir)
+		testFunctionUrl(t, tfWorkingDir)
 	})
 
+	// rename the environment name
+	envVars["ENVIRONMENT_NAME"] = "renamed"
+	test_structure.RunTestStage(t, "rename_app", func() {
+		synthApp(t, testApp, tfWorkingDir, envVars)
+	})
+
+	// confirm no changes in plan
+	test_structure.RunTestStage(t, "validate_rename", func() {
+		replanUsingTerraform(t, tfWorkingDir)
+	})
 }
 
 func synthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string) {
 	zapLogger := util.ForwardingLogger(t, terratestLogger)
 	ctx := context.Background()
-	// path from integ/aws/network/apps/*.ts to repo root src
+	// path from integ/aws/compute/apps/*.ts to repo root src
 	mainPathToSrc := filepath.Join("..", repoRoot, "src")
 	if _, err := os.Stat(filepath.Join(repoRoot, "lib")); err != nil {
 		t.Fatal("No lib folder, run pnpm compile before go test")
@@ -113,6 +124,7 @@ func synthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string)
 			"@envtio/base": relPath,
 		},
 	})
+	// replace the path to src with relative package "@envtio/base"
 	mainTs := strings.ReplaceAll(string(mainTsBytes), mainPathToSrc, "@envtio/base")
 	err = app.Eval(ctx, thisFs, mainTs, "cdktf.out/stacks/"+testApp, tfWorkingDir)
 	if err != nil {
@@ -137,24 +149,51 @@ func undeployUsingTerraform(t *testing.T, workingDir string) {
 	terraform.Destroy(t, terraformOptions)
 }
 
-// fetchFunctionPayload is the payload for the fetch function
-type fetchFunctionPayload struct {
-	URL string `json:"url"`
+// Ensure Function URL works
+func testFunctionUrl(t *testing.T, tfWorkingDir string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	outputMap := terraform.OutputMap(t, terraformOptions, "echo")
+	responseCode, response := http_helper.HttpGet(t, outputMap["url"], nil)
+	assert.Equal(t, 200, responseCode)
+	terratestLogger.Logf(t, "Response from %s: %v", outputMap["url"], string(response))
 }
 
-// ensure all fetch functions can be invoked correctly
-func testLambdaInvocations(t *testing.T, awsRegion string, workingDir string) {
-	// Load the Terraform Options saved by the earlier deploy_terraform stage
+func replanUsingTerraform(t *testing.T, workingDir string) {
 	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
-	echoOutputMap := terraform.OutputMap(t, terraformOptions, "echo")
-	fetchFunctionOutputs := []string{"data_fetch_ip_0", "data_fetch_ip_1", "private_fetch_ip_0", "private_fetch_ip_1"}
+	plan := terraform.InitAndPlanAndShowWithStructNoLogTempPlanFile(t, terraformOptions)
+	// validate no replace in plan struct
+	summarizePlan(t, plan)
+	require.Equal(t, 0, countReplaceActions(plan))
+}
 
-	for _, fetchFunctionOutput := range fetchFunctionOutputs {
-		outputMap := terraform.OutputMap(t, terraformOptions, fetchFunctionOutput)
-		response, err := aws.InvokeFunctionE(t, awsRegion, outputMap["name"], fetchFunctionPayload{
-			URL: echoOutputMap["url"],
-		})
-		require.NoError(t, err)
-		terratestLogger.Logf(t, "Response from %s: %v", outputMap["name"], string(response))
+func summarizePlan(t *testing.T, plan *terraform.PlanStruct) int {
+	count := 0
+	for _, change := range plan.ResourceChangesMap {
+		addres := change.Address
+		if change.Change.Actions.Create() {
+			terratestLogger.Logf(t, "Create Action: %v", addres)
+		} else if change.Change.Actions.Delete() {
+			terratestLogger.Logf(t, "Delete Action: %v", addres)
+		} else if change.Change.Actions.Replace() {
+			prettyDiff, err := util.PrettyPrintResourceChange(change)
+			require.NoError(t, err)
+			terratestLogger.Logf(t, "Replace Action:  %v - %v", addres, prettyDiff)
+		} else if change.Change.Actions.Update() {
+			prettyDiff, err := util.PrettyPrintResourceChange(change)
+			require.NoError(t, err)
+			terratestLogger.Logf(t, "Update Action: %v - %v", addres, prettyDiff)
+		}
 	}
+	return count
+}
+
+func countReplaceActions(plan *terraform.PlanStruct) int {
+	count := 0
+	for _, change := range plan.ResourceChangesMap {
+		if change.Change.Actions.Replace() {
+			count++
+		}
+	}
+	return count
 }
