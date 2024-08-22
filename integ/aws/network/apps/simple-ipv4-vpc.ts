@@ -2,21 +2,22 @@ import * as path from "path";
 import { App, LocalBackend } from "cdktf";
 import { aws } from "../../../../src";
 
-// Define the output directory (outdir/stackName)
-const outdir = "cdktf.out";
-const stackName = "simple-ipv4-vpc";
+const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
+const region = process.env.AWS_REGION ?? "us-east-1";
+const outdir = process.env.OUT_DIR ?? "cdktf.out";
+const stackName = process.env.STACK_NAME ?? "nodejs-function-url";
 
 const app = new App({
   outdir,
 });
 const stack = new aws.AwsSpec(app, stackName, {
-  environmentName: "test",
   gridUUID: "12345678-1234",
+  environmentName,
   // gridBackendConfig: {
   //   address: "localhost:3234",
   // },
   providerConfig: {
-    region: "us-east-1",
+    region,
   },
 });
 // TODO: use E.T. e2e s3 backend?
@@ -29,6 +30,7 @@ const azCount = 2;
 const network = new aws.network.SimpleIPv4Vpc(stack, "default", {
   internalDomain: "example.com",
   ipv4CidrBlock: "10.0.0.0/16",
+  natGatewayOption: aws.network.NatGatewayOption.SINGLE_NAT_GATEWAY,
   azCount,
 });
 

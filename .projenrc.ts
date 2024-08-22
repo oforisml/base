@@ -49,6 +49,12 @@ const project = new cdk.JsiiProject({
   workflowNodeVersion: nodeVersion,
   workflowBootstrapSteps: [
     {
+      uses: "actions/setup-go@v5",
+      with: {
+        "go-version": "^1.22.2",
+      },
+    },
+    {
       uses: "oven-sh/setup-bun@v1",
       with: {
         "bun-version": "1.1.10",
@@ -89,6 +95,7 @@ project.gitignore.exclude(".env");
 
 // exclude the integration tests from the npm package
 project.npmignore?.addPatterns("/integ/");
+project.tsconfigDev?.addInclude("integ/**/*.ts");
 
 project.package.addEngine("node", nodeVersion);
 new TextFile(project, ".nvmrc", {

@@ -54,11 +54,9 @@ export interface SimpleIPv4Props extends AwsBeaconProps {
  * For example:
  *
  * ```ts
- * const network = new network.SimpleIPv4(stack, "network", {
- *   config: {
- *     ipv4CidrBlock: "10.0.0.0/16",
- *     internalDomain: "example.local",
- *   },
+ * const network = new network.SimpleIPv4(awsSpec, "network", {
+ *  ipv4CidrBlock: "10.0.0.0/16",
+ *  internalDomain: "example.local",
  * });
  *
  * // Add a subnet group for RDS

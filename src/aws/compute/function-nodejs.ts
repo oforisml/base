@@ -55,6 +55,24 @@ const bundle = (
   return path.join(workingDirectory, "dist");
 };
 
+/**
+ * Provides a NodeJS Lambda Function. Lambda allows you to trigger execution
+ * of code in response to events in AWS, enabling serverless backend solutions.
+ *
+ * The Lambda Function itself will be bundled using
+ * [esbuild-wasm](https://esbuild.github.io/getting-started/#wasm).
+ *
+ * For example:
+ *
+ * ```ts
+ * const fn = new compute.NodejsFunction(spec, "HelloWorld", {
+ *   path: path.join(__dirname, "handlers", "hello-world.ts"),
+ * });
+ * ```
+ *
+ * @resource aws_lambda_function
+ * @beacon-class compute.IFunction
+ */
 export class NodejsFunction extends LambdaFunction {
   public readonly asset: TerraformAsset;
   public readonly bundledPath: string;

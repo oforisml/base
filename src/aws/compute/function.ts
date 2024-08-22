@@ -91,6 +91,15 @@ export interface IFunction extends IAwsBeacon {
   addUrl(url: UrlConfig): void;
 }
 
+/**
+ * Provides a Lambda Function resource. Lambda allows you to trigger execution
+ * of code in response to events in AWS, enabling serverless backend solutions.
+ *
+ * The Lambda Function itself includes source code and runtime configuration.
+ *
+ * @resource aws_lambda_function
+ * @beacon-class compute.IFunction
+ */
 export class LambdaFunction extends AwsBeaconBase implements IFunction {
   // TODO: Add static fromLookup?
   protected readonly resource: lambdaFunction.LambdaFunction;
