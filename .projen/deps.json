@@ -19,6 +19,10 @@
       "type": "build"
     },
     {
+      "name": "@types/mime-types",
+      "type": "build"
+    },
+    {
       "name": "@types/node",
       "version": "^18",
       "type": "build"
@@ -125,6 +129,10 @@
     {
       "name": "iam-floyd",
       "version": "^0.658.0",
+      "type": "bundled"
+    },
+    {
+      "name": "mime-types",
       "type": "bundled"
     },
     {

@@ -7,6 +7,7 @@ export * from "./spec";
 export * from "./provider-config.generated";
 
 // classes
-// export * as iam from "./iam";
+// export * as iam from "./iam"; // Iam floyd is not JSII compatible
 export * as compute from "./compute";
 export * as network from "./network";
+export * as staticsite from "./staticsite";

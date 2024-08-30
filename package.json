@@ -37,6 +37,7 @@
     "@jsii/spec": "^1.102.0",
     "@mrgrain/jsii-struct-builder": "^0.7.38",
     "@types/jest": "^29.5.12",
+    "@types/mime-types": "^2.1.4",
     "@types/node": "^18",
     "@typescript-eslint/eslint-plugin": "^7",
     "@typescript-eslint/parser": "^7",
@@ -67,11 +68,13 @@
   },
   "dependencies": {
     "esbuild-wasm": "^0.23.1",
-    "iam-floyd": "^0.658.0"
+    "iam-floyd": "^0.658.0",
+    "mime-types": "^2.1.35"
   },
   "bundledDependencies": [
     "esbuild-wasm",
-    "iam-floyd"
+    "iam-floyd",
+    "mime-types"
   ],
   "pnpm": {},
   "engines": {

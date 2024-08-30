@@ -8,7 +8,7 @@ import { LambdaFunction, FunctionProps } from "./function";
 
 export interface NodejsFunctionProps extends FunctionProps {
   /**
-   * The path to the Handler entry point script.
+   * The path to the Handler entry point script, relative to the Spec file.
    *
    * This script will be bundled using
    * [esbuild-wasm](https://esbuild.github.io/getting-started/#wasm).

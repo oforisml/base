@@ -254,13 +254,13 @@
       },
       "steps": [
         {
-          "exec": "pnpm dlx npm-check-updates@16 --upgrade --target=minor --peer --dep=dev,peer,prod,optional --filter=@mrgrain/jsii-struct-builder,@types/jest,eslint-config-prettier,eslint-import-resolver-typescript,eslint-plugin-import,eslint-plugin-prettier,jest,jsii-diff,jsii-pacmak,prettier,projen,ts-jest,ts-node"
+          "exec": "pnpm dlx npm-check-updates@16 --upgrade --target=minor --peer --dep=dev,peer,prod,optional --filter=@mrgrain/jsii-struct-builder,@types/jest,@types/mime-types,eslint-config-prettier,eslint-import-resolver-typescript,eslint-plugin-import,eslint-plugin-prettier,jest,jsii-diff,jsii-pacmak,prettier,projen,ts-jest,ts-node,mime-types"
         },
         {
           "exec": "pnpm i --no-frozen-lockfile"
         },
         {
-          "exec": "pnpm update @cdktf/provider-aws @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktf constructs eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii prettier projen standard-version ts-jest ts-node typescript esbuild-wasm iam-floyd"
+          "exec": "pnpm update @cdktf/provider-aws @jsii/spec @mrgrain/jsii-struct-builder @types/jest @types/mime-types @types/node @typescript-eslint/eslint-plugin @typescript-eslint/parser cdktf constructs eslint-config-prettier eslint-import-resolver-typescript eslint-plugin-import eslint-plugin-prettier eslint jest jest-junit jsii-diff jsii-pacmak jsii-rosetta jsii prettier projen standard-version ts-jest ts-node typescript esbuild-wasm iam-floyd mime-types"
         },
         {
           "exec": "npx projen"
