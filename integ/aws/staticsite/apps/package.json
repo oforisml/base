@@ -1,8 +1,8 @@
 {
-  "name": "integ-aws-compute",
+  "name": "integ-aws-staticsite",
   "type": "module",
   "scripts": {
-    "nodejs-function-url": "bun run ./nodejs-function-url.ts"
+    "public-website-bucket": "bun run ./public-website-bucket.ts"
   },
   "dependencies": {
     "cdktf": "^0.20.8",

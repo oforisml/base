@@ -57,3 +57,6 @@ tsconfig.json
 !/src/aws/compute/permission-config.generated.ts
 !/src/aws/compute/url-config.generated.ts
 !/src/aws/compute/function-vpc-config.generated.ts
+!/src/aws/staticsite/website-config.generated.ts
+!/src/aws/staticsite/cors-rule-config.generated.ts
+!/src/aws/staticsite/cors-config.generated.ts

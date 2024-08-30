@@ -5,7 +5,7 @@ import { aws } from "../../../../src";
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
-const stackName = process.env.STACK_NAME ?? "nodejs-function-url";
+const stackName = process.env.STACK_NAME ?? "simple-ipv4-vpc";
 
 const app = new App({
   outdir,

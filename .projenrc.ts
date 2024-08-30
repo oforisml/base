@@ -4,6 +4,8 @@ import {
   LambdaFunctionUrlConfigStructBuilder,
   LambdaPermissionConfigStructBuilder,
   LambdaFunctionVpcConfigStructBuilder,
+  S3BucketWebsiteConfigurationConfigStructBuilder,
+  S3BucketCorsConfigurationConfigStructBuilder,
 } from "./projenrc";
 
 // set strict node version
@@ -42,9 +44,10 @@ const project = new cdk.JsiiProject({
     "constructs@^10.3.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
+    "@types/mime-types",
   ],
-  // deps: ["iam-floyd@^0.658.0"],
-  bundledDeps: ["esbuild-wasm@^0.23.1", "iam-floyd@^0.658.0"],
+  // deps: ["iam-floyd@^0.658.0"], // iam-floyd is not JSII compatible and must be bundled.
+  bundledDeps: ["esbuild-wasm@^0.23.1", "iam-floyd@^0.658.0", "mime-types"],
 
   workflowNodeVersion: nodeVersion,
   workflowBootstrapSteps: [
@@ -110,5 +113,7 @@ new AwsProviderStructBuilder(project);
 new LambdaPermissionConfigStructBuilder(project);
 new LambdaFunctionUrlConfigStructBuilder(project);
 new LambdaFunctionVpcConfigStructBuilder(project);
+new S3BucketWebsiteConfigurationConfigStructBuilder(project);
+new S3BucketCorsConfigurationConfigStructBuilder(project);
 
 project.synth();

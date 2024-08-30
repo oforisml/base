@@ -1,0 +1,115 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Bucket Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_s3_bucket": {
+      "HelloWorld_7964D1E8": {
+        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_acl": {
+      "HelloWorld_PublicAcl_A32D5A72": {
+        "acl": "public-read",
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "depends_on": [
+          "aws_s3_bucket_ownership_controls.HelloWorld_OwnershipControls_179F29CE",
+          "aws_s3_bucket_public_access_block.HelloWorld_PublicAccessBlock_8B1865DA"
+        ]
+      }
+    },
+    "aws_s3_bucket_ownership_controls": {
+      "HelloWorld_OwnershipControls_179F29CE": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "rule": {
+          "object_ownership": "BucketOwnerPreferred"
+        }
+      }
+    },
+    "aws_s3_bucket_policy": {
+      "HelloWorld_Policy_351F392A": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "depends_on": [
+          "aws_s3_bucket_public_access_block.HelloWorld_PublicAccessBlock_8B1865DA"
+        ],
+        "policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":\\"s3:GetObject\\",\\"Resource\\":\\"\${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*\\",\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"AWS\\":[\\"*\\"]}}]}"
+      }
+    },
+    "aws_s3_bucket_public_access_block": {
+      "HelloWorld_PublicAccessBlock_8B1865DA": {
+        "block_public_acls": false,
+        "block_public_policy": false,
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "ignore_public_acls": false,
+        "restrict_public_buckets": false
+      }
+    },
+    "aws_s3_bucket_website_configuration": {
+      "HelloWorld_WebsiteConfig_72ADC681": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "index_document": {
+          "suffix": "index.html"
+        }
+      }
+    },
+    "aws_s3_object": {
+      "HelloWorld_File--images--officespace-greatjpg_34A1DCCE": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "content_type": "image/jpeg",
+        "key": "/images/officespace-great.jpg",
+        "source": "assets/HelloWorld_PathAsset_4757FC2F/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_PathAsset_4757FC2F/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg\\")}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      },
+      "HelloWorld_File--indexhtml_5799AAE8": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "content_type": "text/html; charset=utf-8",
+        "key": "/index.html",
+        "source": "assets/HelloWorld_PathAsset_4757FC2F/7C1CC84268AB29AAED03995506EAD038/index.html",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_PathAsset_4757FC2F/7C1CC84268AB29AAED03995506EAD038/index.html\\")}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.60.0"
+      }
+    }
+  }
+}"
+`;

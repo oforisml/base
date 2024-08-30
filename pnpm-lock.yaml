@@ -14,6 +14,9 @@ importers:
       iam-floyd:
         specifier: ^0.658.0
         version: 0.658.0
+      mime-types:
+        specifier: ^2.1.35
+        version: 2.1.35
     devDependencies:
       '@cdktf/provider-aws':
         specifier: 19.28.0
@@ -27,6 +30,9 @@ importers:
       '@types/jest':
         specifier: ^29.5.12
         version: 29.5.12
+      '@types/mime-types':
+        specifier: ^2.1.4
+        version: 2.1.4
       '@types/node':
         specifier: ^18
         version: 18.19.44
@@ -472,6 +478,9 @@ packages:
 
   '@types/json5@0.0.29':
     resolution: {integrity: sha512-dRLjCWHYg4oaA77cxO64oO+7JwCwnIzkZPdrrC71jQmQtlhM556pwKo5bUzqvZndkVbeFLIIi+9TC40JNF5hNQ==}
+
+  '@types/mime-types@2.1.4':
+    resolution: {integrity: sha512-lfU4b34HOri+kAY5UheuFMWPDOI+OPceBSHZKp69gEyTL/mmJ4cnU6Y/rlme3UL3GyOn6Y42hyIEw0/q8sWx5w==}
 
   '@types/minimist@1.2.5':
     resolution: {integrity: sha512-hov8bUuiLiyFPGyFPE1lwWhmzYbirOXQNNo40+y3zow8aFVTeyn3VWL0VFFfdNddA8S4Vf0Tc062rzyNr7Paag==}
@@ -1947,6 +1956,14 @@ packages:
     resolution: {integrity: sha512-LPP/3KorzCwBxfeUuZmaR6bG2kdeHSbe0P2tY3FLRU4vYrjYz5hI4QZwV0njUx3jeuKe67YukQ1LSPZBKDqO/Q==}
     engines: {node: '>=8.6'}
 
+  mime-db@1.52.0:
+    resolution: {integrity: sha512-sPU4uV7dYlvtWJxwwxHD0PuihVNiE7TyAbQ5SWxDCB9mUYvOgroQOwYQQOKPJ8CIbE+1ETVlOoK1UC2nU3gYvg==}
+    engines: {node: '>= 0.6'}
+
+  mime-types@2.1.35:
+    resolution: {integrity: sha512-ZDY+bPm5zTTF+YpCrAU9nK0UgICYPT0QtT1NZWFv4s++TNkcgVaT0g6+4R2uI4MjQjzysHB1zxuWL50hzaeXiw==}
+    engines: {node: '>= 0.6'}
+
   mimic-fn@2.1.0:
     resolution: {integrity: sha512-OqbOk5oEQeAZ8WXWydlu9HJjz9WVdEIvamMCcXmuqUYjTknH/sqsWvhQ3vgwKFRR1HpjvNBKQ37nbJgYzGqGcg==}
     engines: {node: '>=6'}
@@ -2644,8 +2661,8 @@ packages:
     engines: {node: '>=14.17'}
     hasBin: true
 
-  typescript@5.7.0-dev.20240821:
-    resolution: {integrity: sha512-0Fy9p2k7DxC6OWPSXqJbrzkaxL4R7N+VRaxHnFeWnYSqwLfKQTX2JeARy+MGcSphRP9KKe/DtMGXYdoULHjMHw==}
+  typescript@5.7.0-dev.20240830:
+    resolution: {integrity: sha512-9VbtIHvcw8LBJ3lcS+ovk4uraOFXpMGi+b3V9BOykkfszyAschMieLZgAV0YN/yvELk84QrWig1mZV8uBKS+RA==}
     engines: {node: '>=14.17'}
     hasBin: true
 
@@ -3296,6 +3313,8 @@ snapshots:
 
   '@types/json5@0.0.29': {}
 
+  '@types/mime-types@2.1.4': {}
+
   '@types/minimist@1.2.5': {}
 
   '@types/node@18.19.44':
@@ -3941,7 +3960,7 @@ snapshots:
     dependencies:
       semver: 7.6.3
       shelljs: 0.8.5
-      typescript: 5.7.0-dev.20240821
+      typescript: 5.7.0-dev.20240830
 
   ejs@3.1.10:
     dependencies:
@@ -5177,6 +5196,12 @@ snapshots:
       braces: 3.0.3
       picomatch: 2.3.1
 
+  mime-db@1.52.0: {}
+
+  mime-types@2.1.35:
+    dependencies:
+      mime-db: 1.52.0
+
   mimic-fn@2.1.0: {}
 
   min-indent@1.0.1: {}
@@ -5847,7 +5872,7 @@ snapshots:
 
   typescript@5.4.5: {}
 
-  typescript@5.7.0-dev.20240821: {}
+  typescript@5.7.0-dev.20240830: {}
 
   uglify-js@3.19.2:
     optional: true
