@@ -27,14 +27,14 @@ jobs:
           git config user.email "github-actions@github.com"
       - uses: actions/setup-go@v5
         with:
-          go-version: ^1.22.2
+          go-version: ^1.23.0
       - uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.1.10
-      - uses: hashicorp/setup-terraform@v3
+          bun-version: 1.1.26
+      - uses: opentofu/setup-opentofu@v1
         with:
           terraform_wrapper: false
-          terraform_version: 1.9.4
+          tofu_version: 1.8.2
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -50,7 +50,7 @@ jobs:
       - name: Check if version has already been tagged
         id: check_tag_exists
         run: |-
-          TAG=$(cat dist/dist/releasetag.txt)
+          TAG=$(cat dist/releasetag.txt)
           ([ ! -z "$TAG" ] && git ls-remote -q --exit-code --tags origin $TAG && (echo "exists=true" >> $GITHUB_OUTPUT)) || (echo "exists=false" >> $GITHUB_OUTPUT)
           cat $GITHUB_OUTPUT
       - name: Check for new commits
@@ -64,7 +64,7 @@ jobs:
         continue-on-error: true
       - name: Upload artifact
         if: ${{ steps.git_remote.outputs.latest_commit == github.sha }}
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.6
         with:
           name: build-artifact
           path: dist
@@ -90,10 +90,6 @@ jobs:
       - name: Restore build artifact permissions
         run: cd dist && setfacl --restore=permissions-backup.acl
         continue-on-error: true
-      - name: Prepare Repository
-        run: mv dist .repo
-      - name: Collect GitHub Metadata
-        run: mv .repo/dist dist
       - name: Release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -122,25 +118,31 @@ jobs:
         continue-on-error: true
       - uses: actions/setup-go@v5
         with:
-          go-version: ^1.22.2
+          go-version: ^1.23.0
       - uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.1.10
-      - uses: hashicorp/setup-terraform@v3
+          bun-version: 1.1.26
+      - uses: opentofu/setup-opentofu@v1
         with:
           terraform_wrapper: false
-          terraform_version: 1.9.4
+          tofu_version: 1.8.2
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
           version: "9"
-      - name: Prepare Repository
-        run: mv dist .repo
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          path: .repo
       - name: Install Dependencies
         run: cd .repo && pnpm i --frozen-lockfile
+      - name: Extract build artifact
+        run: tar --strip-components=1 -xzvf dist/js/*.tgz -C .repo
+      - name: Move build artifact out of the way
+        run: mv dist dist.old
       - name: Create js artifact
         run: cd .repo && npx projen package:js
-      - name: Collect js Artifact
+      - name: Collect js artifact
         run: mv .repo/dist dist
       - name: Release
         env:

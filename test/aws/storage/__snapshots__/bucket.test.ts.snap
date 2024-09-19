@@ -1,0 +1,250 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Bucket Should support multiple sources 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "output": {
+    "HelloWorldOutputs": {
+      "description": "Outputs for Test-HelloWorld",
+      "value": {
+        "arn": "\${aws_s3_bucket.HelloWorld_7964D1E8.arn}",
+        "bucketName": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "domainName": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket_domain_name}",
+        "regionalDomainName": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket_regional_domain_name}",
+        "websiteDomainName": "\${aws_s3_bucket_website_configuration.HelloWorld_WebsiteConfig_72ADC681.website_domain}",
+        "websiteUrl": "\${aws_s3_bucket_website_configuration.HelloWorld_WebsiteConfig_72ADC681.website_endpoint}"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_s3_bucket": {
+      "HelloWorld_7964D1E8": {
+        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_versioning": {
+      "HelloWorld_Versioning_5513B8F4": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "versioning_configuration": {
+          "status": "Enabled"
+        }
+      }
+    },
+    "aws_s3_bucket_website_configuration": {
+      "HelloWorld_WebsiteConfig_72ADC681": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "index_document": {
+          "suffix": "index.html"
+        }
+      }
+    },
+    "aws_s3_object": {
+      "HelloWorld_source-0_File--images--officespace-greatjpg_19FE38F4": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "content_type": "image/jpeg",
+        "depends_on": [
+          "time_sleep.HelloWorld_VersioningSleep_FC16C7EC"
+        ],
+        "key": "/images/officespace-great.jpg",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg\\")}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      },
+      "HelloWorld_source-0_File--indexhtml_DFC37CEB": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "content_type": "text/html; charset=utf-8",
+        "depends_on": [
+          "time_sleep.HelloWorld_VersioningSleep_FC16C7EC"
+        ],
+        "key": "/index.html",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html\\")}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      },
+      "HelloWorld_source-1_File--samplehtml_D893DB57": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "content_type": "text/html; charset=utf-8",
+        "depends_on": [
+          "time_sleep.HelloWorld_VersioningSleep_FC16C7EC"
+        ],
+        "key": "/sample.html",
+        "source": "assets/HelloWorld_source-1_PathAsset_F1F0E41E/5E8FF9BF55BA3508199D22E984129BE6/sample.html",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-1_PathAsset_F1F0E41E/5E8FF9BF55BA3508199D22E984129BE6/sample.html\\")}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "time_sleep": {
+      "HelloWorld_VersioningSleep_FC16C7EC": {
+        "create_duration": "15m"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`Bucket Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_s3_bucket": {
+      "HelloWorld_7964D1E8": {
+        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_acl": {
+      "HelloWorld_PublicAcl_A32D5A72": {
+        "acl": "public-read",
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "depends_on": [
+          "aws_s3_bucket_ownership_controls.HelloWorld_OwnershipControls_179F29CE",
+          "aws_s3_bucket_public_access_block.HelloWorld_PublicAccessBlock_8B1865DA"
+        ]
+      }
+    },
+    "aws_s3_bucket_ownership_controls": {
+      "HelloWorld_OwnershipControls_179F29CE": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "rule": {
+          "object_ownership": "BucketOwnerPreferred"
+        }
+      }
+    },
+    "aws_s3_bucket_policy": {
+      "HelloWorld_Policy_351F392A": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "depends_on": [
+          "aws_s3_bucket_public_access_block.HelloWorld_PublicAccessBlock_8B1865DA"
+        ],
+        "policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":\\"s3:GetObject\\",\\"Resource\\":\\"\${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*\\",\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"AWS\\":[\\"*\\"]}}]}"
+      }
+    },
+    "aws_s3_bucket_public_access_block": {
+      "HelloWorld_PublicAccessBlock_8B1865DA": {
+        "block_public_acls": false,
+        "block_public_policy": false,
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "ignore_public_acls": false,
+        "restrict_public_buckets": false
+      }
+    },
+    "aws_s3_bucket_website_configuration": {
+      "HelloWorld_WebsiteConfig_72ADC681": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "index_document": {
+          "suffix": "index.html"
+        }
+      }
+    },
+    "aws_s3_object": {
+      "HelloWorld_source-0_File--images--officespace-greatjpg_19FE38F4": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "content_type": "image/jpeg",
+        "key": "/images/officespace-great.jpg",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/images/officespace-great.jpg\\")}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      },
+      "HelloWorld_source-0_File--indexhtml_DFC37CEB": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "content_type": "text/html; charset=utf-8",
+        "key": "/index.html",
+        "source": "assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html",
+        "source_hash": "\${filemd5(\\"assets/HelloWorld_source-0_PathAsset_B9F685AE/7C1CC84268AB29AAED03995506EAD038/index.html\\")}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;

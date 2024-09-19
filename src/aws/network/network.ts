@@ -3,6 +3,9 @@ import { ISubnet } from "./subnet";
 import { ISubnetGroup } from "./subnet-group";
 import { IAwsBeacon } from "../";
 
+/**
+ * Outputs which may be registered for output via the Grid.
+ */
 export interface NetworkOutputs {
   /**
    * AWS VpcId of the network
@@ -37,6 +40,10 @@ export interface NetworkOutputs {
 export interface INetwork extends IAwsBeacon {
   /** Strongly typed outputs */
   readonly networkOutputs: NetworkOutputs;
+  /**
+   * The VPC ID of the network
+   */
+  readonly vpcId: string;
   /**
    * The Public Subnets of the network
    */

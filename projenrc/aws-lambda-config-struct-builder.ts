@@ -27,7 +27,22 @@ export class LambdaPermissionConfigStructBuilder extends Component {
           "@cdktf/provider-aws.lambdaPermission.LambdaPermissionConfig",
         ),
       )
-      .omit("functionName");
+      .omit("functionName")
+      .add({
+        name: "dependees",
+        type: {
+          collection: {
+            kind: CollectionKind.Array,
+            elementtype: {
+              fqn: "cdktf.ITerraformResource",
+            },
+          },
+        },
+        optional: true,
+        docs: {
+          summary: "A list of resources that depend on this permission.",
+        },
+      });
   }
 }
 
@@ -56,6 +71,70 @@ export class LambdaFunctionUrlConfigStructBuilder extends Component {
         ),
       )
       .omit("functionName");
+  }
+}
+
+/**
+ * LambdaFunctionEventInvokeConfig without functionName
+ */
+export class LambdaEventSourceMappingConfigStructBuilder extends Component {
+  constructor(project: typescript.TypeScriptProject) {
+    super(project);
+    const struct = new ProjenStruct(project, {
+      name: "EventSourceMappingConfig",
+      description: [
+        "Provides a Lambda event source mapping..",
+        " * This allows Lambda functions to get events from Kinesis, DynamoDB, SQS, Amazon MQ and Managed Streaming for Apache Kafka (MSK)",
+        " * For information about event source mappings, see",
+        " * [CreateEventSourceMapping](http://docs.aws.amazon.com/lambda/latest/dg/API_CreateEventSourceMapping.html) in the API docs.",
+      ].join("\n"),
+      filePath: path.join(
+        project.srcdir,
+        "aws",
+        "compute",
+        "event-source-mapping-config.generated.ts",
+      ),
+    });
+
+    struct
+      .mixin(
+        Struct.fromFqn(
+          "@cdktf/provider-aws.lambdaEventSourceMapping.LambdaEventSourceMappingConfig",
+        ),
+      )
+      .omit("id", "functionName");
+  }
+}
+
+/**
+ * LambdaFunctionEventInvokeConfig without functionName
+ */
+export class lambdaFunctionEventInvokeConfigStructBuilder extends Component {
+  constructor(project: typescript.TypeScriptProject) {
+    super(project);
+    const struct = new ProjenStruct(project, {
+      name: "EventInvokeConfig",
+      description: [
+        "Manages an asynchronous invocation configuration for a Lambda Function.",
+        " * More information about asynchronous invocations",
+        " * and the configurable values can be found in the",
+        " * [Lambda Developer Guide](https://docs.aws.amazon.com/lambda/latest/dg/invocation-async.html).",
+      ].join("\n"),
+      filePath: path.join(
+        project.srcdir,
+        "aws",
+        "compute",
+        "event-invoke-config.generated.ts",
+      ),
+    });
+
+    struct
+      .mixin(
+        Struct.fromFqn(
+          "@cdktf/provider-aws.lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfigConfig",
+        ),
+      )
+      .omit("id", "functionName");
   }
 }
 

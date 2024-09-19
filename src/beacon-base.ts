@@ -3,13 +3,14 @@ import {
   TerraformResource,
   TerraformElement,
   TerraformOutput,
+  TerraformMetaArguments,
   Aspects,
   IAspect,
 } from "cdktf";
 import { Construct, IConstruct } from "constructs";
 import { SpecBase } from ".";
 
-export interface BeaconProps {
+export interface BeaconProps extends TerraformMetaArguments {
   /**
    * The friendly name for beacon resources
    *
@@ -32,7 +33,7 @@ export interface BeaconProps {
   readonly outputName?: string;
 }
 
-export interface IBeacon {
+export interface IBeacon extends IConstruct {
   /**
    * Environment Name passed in from the CLI
    */

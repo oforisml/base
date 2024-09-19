@@ -2,7 +2,12 @@
   "dependencies": [
     {
       "name": "@cdktf/provider-aws",
-      "version": "^19.28.0",
+      "version": "^19.34.0",
+      "type": "build"
+    },
+    {
+      "name": "@cdktf/provider-time",
+      "version": "^10.2.1",
       "type": "build"
     },
     {
@@ -43,8 +48,13 @@
       "type": "build"
     },
     {
+      "name": "commit-and-tag-version",
+      "version": "^12",
+      "type": "build"
+    },
+    {
       "name": "constructs",
-      "version": "^10.0.0",
+      "version": "^10.3.0",
       "type": "build"
     },
     {
@@ -104,11 +114,6 @@
       "type": "build"
     },
     {
-      "name": "standard-version",
-      "version": "^9",
-      "type": "build"
-    },
-    {
       "name": "ts-jest",
       "type": "build"
     },
@@ -137,7 +142,12 @@
     },
     {
       "name": "@cdktf/provider-aws",
-      "version": "^19.28.0",
+      "version": "^19.34.0",
+      "type": "peer"
+    },
+    {
+      "name": "@cdktf/provider-time",
+      "version": "^10.2.1",
       "type": "peer"
     },
     {

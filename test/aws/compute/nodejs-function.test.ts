@@ -5,6 +5,9 @@ import { compute, AwsSpec } from "../../../src/aws";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
+const gridBackendConfig = {
+  address: "http://localhost:3000",
+};
 const providerConfig = { region: "us-east-1" };
 describe("Function", () => {
   test("Should synth and match SnapShot", () => {
@@ -29,6 +32,7 @@ describe("Function", () => {
       },
     });
     // THEN
+    spec.prepareStack(); // add last minute resources to the stack
     const result = Testing.synth(spec);
     expect(result).toHaveResourceWithProperties(
       {
@@ -36,6 +40,14 @@ describe("Function", () => {
       },
       {
         vpc_id: "vpc-123",
+      },
+    );
+    expect(result).toHaveResourceWithProperties(
+      {
+        tfResourceType: "aws_iam_policy",
+      },
+      {
+        policy: expect.stringContaining("ec2:CreateNetworkInterface"),
       },
     );
     expect(result).toHaveResourceWithProperties(
@@ -61,5 +73,6 @@ function getAwsSpec(): AwsSpec {
     environmentName,
     gridUUID,
     providerConfig,
+    gridBackendConfig,
   });
 }

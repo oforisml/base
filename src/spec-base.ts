@@ -1,7 +1,48 @@
-import { TerraformStack, HttpBackendConfig, HttpBackend } from "cdktf";
-import { Construct, IConstruct } from "constructs";
+import {
+  TerraformStack,
+  TerraformElement,
+  HttpBackendConfig,
+  HttpBackend,
+} from "cdktf";
+import { Construct, IConstruct, Node } from "constructs";
+import { makeUniqueResourceName } from "./private";
 
 const SPEC_SYMBOL = Symbol.for("@envtio/base/lib/Spec");
+
+// https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/core/lib/names.ts
+
+/**
+ * Options for creating a unique resource name.
+ */
+export interface UniqueResourceNameOptions {
+  /**
+   * The maximum length of the unique resource name.
+   *
+   * @default - 256
+   */
+  readonly maxLength?: number;
+
+  /**
+   * The separator used between the path components.
+   *
+   * @default - none
+   */
+  readonly separator?: string;
+
+  /**
+   * Non-alphanumeric characters allowed in the unique resource name.
+   *
+   * @default - none
+   */
+  readonly allowedSpecialCharacters?: string;
+
+  /**
+   * Prefix to be added into the stack name
+   *
+   * @default - none
+   */
+  readonly prefix?: string;
+}
 
 export interface SpecBaseProps {
   /**
@@ -70,7 +111,7 @@ export abstract class SpecBase extends TerraformStack implements ISpec {
       return s;
     }
     throw new Error(
-      `Resource '${construct.constructor?.name}' at '${construct.node.path}' should be created in the scope of a ISpec, but no ISpec found`,
+      `Resource '${construct.constructor?.name}' at '${construct.node.path}' should be created in the scope of E.T. ISpec, but no ISpec found`,
     );
   }
 
@@ -94,5 +135,35 @@ export abstract class SpecBase extends TerraformStack implements ISpec {
     if (props.gridBackendConfig) {
       this.gridBackend = new HttpBackend(this, props.gridBackendConfig);
     }
+  }
+
+  /**
+   * Returns a Terraform-compatible unique identifier for a Terraform Element based
+   * on its path. This function finds the stackName of the parent stack (non-nested)
+   * to the construct, and the ids of the components in the construct path.
+   *
+   * The user can define allowed special characters, a separator between the elements,
+   * and the maximum length of the resource name. The name includes a human readable portion rendered
+   * from the path components, with or without user defined separators, and a hash suffix.
+   * If the resource name is longer than the maximum length, it is trimmed in the middle.
+   *
+   * @param tfElement The construct
+   * @param options Options for defining the unique resource name
+   * @returns a unique resource name based on the construct path
+   */
+  public uniqueResourceName(
+    tfElement: TerraformElement | Node,
+    options: UniqueResourceNameOptions,
+  ): string {
+    const node = Construct.isConstruct(tfElement) ? tfElement.node : tfElement;
+    const stack = TerraformElement.isTerraformElement(tfElement)
+      ? tfElement.cdktfStack
+      : this;
+    const specIndex = node.scopes.indexOf(stack);
+    const componentsPath = node.scopes
+      .slice(specIndex)
+      .map((component) => component.node.id);
+
+    return makeUniqueResourceName(componentsPath, options);
   }
 }

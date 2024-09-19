@@ -8,22 +8,22 @@ import type { FileProvisioner, ITerraformDependable, ITerraformIterator, LocalEx
 export interface UrlConfig {
   /**
    * timeouts block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function_url#timeouts LambdaFunctionUrl#timeouts}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function_url#timeouts LambdaFunctionUrl#timeouts}
    * @stability stable
    */
   readonly timeouts?: lambdaFunctionUrl.LambdaFunctionUrlTimeouts;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function_url#qualifier LambdaFunctionUrl#qualifier}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function_url#qualifier LambdaFunctionUrl#qualifier}.
    * @stability stable
    */
   readonly qualifier?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function_url#invoke_mode LambdaFunctionUrl#invoke_mode}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function_url#invoke_mode LambdaFunctionUrl#invoke_mode}.
    * @stability stable
    */
   readonly invokeMode?: string;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function_url#id LambdaFunctionUrl#id}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function_url#id LambdaFunctionUrl#id}.
    * Please be aware that the id field is automatically added to all resources in Terraform providers using a Terraform provider SDK version below 2.
    * If you experience problems setting this value it might not be settable. Please take a look at the provider documentation to ensure it should be settable.
    * @stability stable
@@ -31,12 +31,12 @@ export interface UrlConfig {
   readonly id?: string;
   /**
    * cors block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function_url#cors LambdaFunctionUrl#cors}
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function_url#cors LambdaFunctionUrl#cors}
    * @stability stable
    */
   readonly cors?: lambdaFunctionUrl.LambdaFunctionUrlCors;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function_url#authorization_type LambdaFunctionUrl#authorization_type}.
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function_url#authorization_type LambdaFunctionUrl#authorization_type}.
    * @stability stable
    */
   readonly authorizationType: string;

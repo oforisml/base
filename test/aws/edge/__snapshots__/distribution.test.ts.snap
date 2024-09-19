@@ -1,0 +1,378 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Distribution Should support multiple origins and cache behaviors 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_cloudfront_cache_policy": {
+      "HelloWorldDistribution_Managed-CachingOptimized_E039BAC9": {
+        "name": "Managed-CachingOptimized"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudfront_distribution": {
+      "HelloWorldDistribution_E7735130": {
+        "default_cache_behavior": {
+          "allowed_methods": [
+            "GET",
+            "HEAD"
+          ],
+          "cache_policy_id": "\${data.aws_cloudfront_cache_policy.HelloWorldDistribution_Managed-CachingOptimized_E039BAC9.id}",
+          "cached_methods": [
+            "GET",
+            "HEAD"
+          ],
+          "compress": true,
+          "target_origin_id": "origin-0",
+          "viewer_protocol_policy": "allow-all"
+        },
+        "enabled": true,
+        "http_version": "http2",
+        "ordered_cache_behavior": [
+          {
+            "allowed_methods": [
+              "GET",
+              "HEAD"
+            ],
+            "cache_policy_id": "\${data.aws_cloudfront_cache_policy.HelloWorldDistribution_Managed-CachingOptimized_E039BAC9.id}",
+            "cached_methods": [
+              "GET",
+              "HEAD"
+            ],
+            "compress": true,
+            "path_pattern": "/images/*",
+            "target_origin_id": "origin-1",
+            "viewer_protocol_policy": "allow-all"
+          }
+        ],
+        "origin": [
+          {
+            "custom_origin_config": {
+              "http_port": 80,
+              "https_port": 443,
+              "origin_protocol_policy": "http-only",
+              "origin_ssl_protocols": [
+                "TLSv1.2"
+              ]
+            },
+            "domain_name": "\${aws_s3_bucket_website_configuration.Bucket0_WebsiteConfig_F3339C3F.website_domain}",
+            "origin_id": "origin-0"
+          },
+          {
+            "custom_origin_config": {
+              "http_port": 80,
+              "https_port": 443,
+              "origin_protocol_policy": "http-only",
+              "origin_ssl_protocols": [
+                "TLSv1.2"
+              ]
+            },
+            "domain_name": "\${aws_s3_bucket_website_configuration.Bucket1_WebsiteConfig_0DE2B7DD.website_domain}",
+            "origin_id": "origin-1"
+          }
+        ],
+        "restrictions": {
+          "geo_restriction": {
+            "restriction_type": "none"
+          }
+        },
+        "tags": {
+          "Name": "Test-HelloWorldDistribution",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "viewer_certificate": {
+          "cloudfront_default_certificate": true,
+          "minimum_protocol_version": "TLSv1.2_2021",
+          "ssl_support_method": "sni-only"
+        }
+      }
+    },
+    "aws_s3_bucket": {
+      "Bucket0_C98EAF71": {
+        "bucket_prefix": "123e4567-e89b-12d3-bucket-0",
+        "tags": {
+          "Name": "Test-Bucket0",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      },
+      "Bucket1_2520700A": {
+        "bucket_prefix": "123e4567-e89b-12d3-bucket-1",
+        "tags": {
+          "Name": "Test-Bucket1",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_website_configuration": {
+      "Bucket0_WebsiteConfig_F3339C3F": {
+        "bucket": "\${aws_s3_bucket.Bucket0_C98EAF71.bucket}",
+        "index_document": {
+          "suffix": "index.html"
+        }
+      },
+      "Bucket1_WebsiteConfig_0DE2B7DD": {
+        "bucket": "\${aws_s3_bucket.Bucket1_2520700A.bucket}",
+        "index_document": {
+          "suffix": "index.html"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_cloudfront_cache_policy": {
+      "HelloWorldDistribution_Managed-CachingOptimized_E039BAC9": {
+        "name": "Managed-CachingOptimized"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudfront_distribution": {
+      "HelloWorldDistribution_E7735130": {
+        "default_cache_behavior": {
+          "allowed_methods": [
+            "GET",
+            "HEAD"
+          ],
+          "cache_policy_id": "\${data.aws_cloudfront_cache_policy.HelloWorldDistribution_Managed-CachingOptimized_E039BAC9.id}",
+          "cached_methods": [
+            "GET",
+            "HEAD"
+          ],
+          "compress": true,
+          "target_origin_id": "origin-0",
+          "viewer_protocol_policy": "allow-all"
+        },
+        "enabled": true,
+        "http_version": "http2",
+        "origin": [
+          {
+            "domain_name": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket_regional_domain_name}",
+            "origin_id": "origin-0",
+            "s3_origin_config": {
+              "origin_access_identity": "\${aws_cloudfront_origin_access_identity.HelloWorld_OriginAccessIdentity_5B20D425.cloudfront_access_identity_path}"
+            }
+          }
+        ],
+        "restrictions": {
+          "geo_restriction": {
+            "restriction_type": "none"
+          }
+        },
+        "tags": {
+          "Name": "Test-HelloWorldDistribution",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "viewer_certificate": {
+          "cloudfront_default_certificate": true,
+          "minimum_protocol_version": "TLSv1.2_2021",
+          "ssl_support_method": "sni-only"
+        }
+      }
+    },
+    "aws_cloudfront_origin_access_identity": {
+      "HelloWorld_OriginAccessIdentity_5B20D425": {
+        "comment": "OAI for \${aws_s3_bucket.HelloWorld_7964D1E8.bucket}"
+      }
+    },
+    "aws_s3_bucket": {
+      "HelloWorld_7964D1E8": {
+        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_policy": {
+      "HelloWorld_Policy_351F392A": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "depends_on": [
+          "aws_cloudfront_origin_access_identity.HelloWorld_OriginAccessIdentity_5B20D425"
+        ],
+        "policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":\\"s3:GetObject\\",\\"Resource\\":\\"\${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*\\",\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"AWS\\":[\\"\${aws_cloudfront_origin_access_identity.HelloWorld_OriginAccessIdentity_5B20D425.iam_arn}\\"]}}]}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_cloudfront_cache_policy": {
+      "HelloWorldDistribution_Managed-CachingOptimized_E039BAC9": {
+        "name": "Managed-CachingOptimized"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudfront_distribution": {
+      "HelloWorldDistribution_E7735130": {
+        "default_cache_behavior": {
+          "allowed_methods": [
+            "GET",
+            "HEAD"
+          ],
+          "cache_policy_id": "\${data.aws_cloudfront_cache_policy.HelloWorldDistribution_Managed-CachingOptimized_E039BAC9.id}",
+          "cached_methods": [
+            "GET",
+            "HEAD"
+          ],
+          "compress": true,
+          "target_origin_id": "origin-0",
+          "viewer_protocol_policy": "allow-all"
+        },
+        "enabled": true,
+        "http_version": "http2",
+        "origin": [
+          {
+            "custom_origin_config": {
+              "http_port": 80,
+              "https_port": 443,
+              "origin_protocol_policy": "http-only",
+              "origin_ssl_protocols": [
+                "TLSv1.2"
+              ]
+            },
+            "domain_name": "\${aws_s3_bucket_website_configuration.HelloWorld_WebsiteConfig_72ADC681.website_domain}",
+            "origin_id": "origin-0"
+          }
+        ],
+        "restrictions": {
+          "geo_restriction": {
+            "restriction_type": "none"
+          }
+        },
+        "tags": {
+          "Name": "Test-HelloWorldDistribution",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "viewer_certificate": {
+          "cloudfront_default_certificate": true,
+          "minimum_protocol_version": "TLSv1.2_2021",
+          "ssl_support_method": "sni-only"
+        }
+      }
+    },
+    "aws_s3_bucket": {
+      "HelloWorld_7964D1E8": {
+        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_website_configuration": {
+      "HelloWorld_WebsiteConfig_72ADC681": {
+        "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
+        "index_document": {
+          "suffix": "index.html"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;

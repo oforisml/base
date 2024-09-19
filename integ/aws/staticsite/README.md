@@ -1,11 +1,16 @@
 # StaticSite e2e tests
 
+> [!IMPORTANT]
+> Terratest uses compiled package from `lib` directory, run `pnpm compile` after making changes!
+
 ## Webiste Bucket test
 
 Run terratest:
 
 ```sh
 make public-website-bucket
+# or
+make cdn-website-bucket
 ```
 
 Iterating tests, use the `SKIP_` variables for the stages defined:

@@ -5,7 +5,7 @@ import { aws } from "../../../../src";
 const environmentName = process.env.ENVIRONMENT_NAME ?? "test";
 const region = process.env.AWS_REGION ?? "us-east-1";
 const outdir = process.env.OUT_DIR ?? "cdktf.out";
-const stackName = process.env.STACK_NAME ?? "website-bucket"; // "public-website-bucket";
+const stackName = process.env.STACK_NAME ?? "public-website-bucket";
 
 const app = new App({
   outdir,
@@ -23,9 +23,9 @@ new LocalBackend(stack, {
 });
 
 // add a public s3 bucket with website hosting enabled
-new aws.staticsite.Bucket(stack, "WebSite", {
+new aws.storage.Bucket(stack, "WebSite", {
   namePrefix: "hello-world",
-  path: path.join(__dirname, "site"),
+  sources: path.join(__dirname, "site"),
   websiteConfig: {
     enabled: true,
   },

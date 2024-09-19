@@ -5,24 +5,107 @@ import {
   cloudwatchLogGroup,
   lambdaFunctionUrl,
   securityGroup,
+  lambdaFunctionEventInvokeConfig,
+  lambdaEventSourceMapping,
 } from "@cdktf/provider-aws";
 import { IResolveContext, Lazy, IResolvable } from "cdktf";
 import { Construct } from "constructs";
 import { Statement } from "iam-floyd";
-import { PermissionConfig, UrlConfig, VpcConfig } from ".";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
+import {
+  Architecture,
+  PermissionConfig,
+  UrlConfig,
+  VpcConfig,
+  EventSourceMappingConfig,
+  EventInvokeConfig,
+} from ".";
+import {
+  AwsBeaconBase,
+  IAwsBeacon,
+  AwsBeaconProps,
+  AwsAccessLevels,
+  RetentionDays,
+} from "..";
+import { Duration } from "../../";
 import { ServiceRole, IServiceRole } from "../iam";
+import { IQueue } from "../notify";
+import { IBucket } from "../storage";
 
-export interface FunctionProps extends AwsBeaconProps {
+/**
+ * Options to add an EventInvokeConfig to a function.
+ */
+export interface EventInvokeConfigOptions extends AwsBeaconProps {
+  /**
+   * The destination for failed invocations.
+   *
+   * Ensure the Lambda Function IAM Role has necessary permissions for the destination
+   *
+   * @default - no destination
+   */
+  readonly onFailure?: string; //TODO: Re-add IDestination.bind to automatically handle permissions?
+
+  /**
+   * The destination for successful invocations.
+   *
+   * Ensure the Lambda Function IAM Role has necessary permissions for the destination
+   *
+   * @default - no destination
+   */
+  readonly onSuccess?: string; //TODO: Re-add IDestination.bind to automatically handle permissions?
+
+  /**
+   * The maximum age of a request that Lambda sends to a function for
+   * processing.
+   *
+   * Minimum: 60 seconds
+   * Maximum: 6 hours
+   *
+   * @default Duration.hours(6)
+   */
+  readonly maxEventAge?: Duration;
+
+  /**
+   * The maximum number of times to retry when the function returns an error.
+   *
+   * Minimum: 0
+   * Maximum: 2
+   *
+   * @default 2
+   */
+  readonly retryAttempts?: number;
+}
+
+export interface FunctionProps extends EventInvokeConfigOptions {
   /**
    * The environment variables to be passed to the Lambda function.
    */
   readonly environment?: { [key: string]: string };
 
   /**
+   * Description of what your Lambda Function does.
+   */
+  readonly description?: string;
+
+  /**
+   * The system architectures compatible with this lambda function.
+   * @default Architecture.X86_64
+   */
+  readonly architecture?: Architecture;
+
+  /**
+   * The tracing mode for the Lambda function.
+   *
+   * The Lambda function iam role will receive permission to
+   * write to AWS X-Ray.
+   *
+   * @default Tracing.ACTIVE
+   */
+  readonly tracing?: Tracing;
+
+  /**
    * The log retention period in days. Defaults to 7.
    */
-  readonly logRetentionInDays?: number;
+  readonly logRetentionInDays?: RetentionDays;
 
   /**
    * The memory limit in MB. Defaults to 512.
@@ -43,11 +126,38 @@ export interface FunctionProps extends AwsBeaconProps {
    * Config for network connectivity to AWS resources in a VPC, specify a list
    * of subnet, and optionally security groups, in the VPC.
    *
+   * The Lambda function iam role will receive permission to
+   * manage ENIs within the provided network.
+   *
    * When you connect a function to a VPC, it can only access resources and the internet through that VPC.
    *
    * See [VPC Settings](https://docs.aws.amazon.com/lambda/latest/dg/configuration-vpc.html).
    */
   readonly networkConfig?: VpcConfig;
+
+  /**
+   * The SQS DLQ.
+   *
+   * The Lambda function iam role will receive permission to
+   * send messages on this queue.
+   *
+   * @default - no deadletter queue
+   */
+  readonly deadLetterQueue?: IQueue;
+
+  /**
+   * Event sources for this function.
+   *
+   * You can also add event sources using `addEventSource`.
+   *
+   * @default - No event sources.
+   */
+  readonly events?: { [id: string]: EventSourceMappingConfig };
+
+  /**
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function#reserved_concurrent_executions LambdaFunction#reserved_concurrent_executions}
+   */
+  readonly reservedConcurrentExecutions?: number;
 
   /**
    * Tags to apply to the Lambda function.
@@ -88,7 +198,54 @@ export interface IFunction extends IAwsBeacon {
   readonly functionName: string;
   addPermission(alias: string, permission: PermissionConfig): void;
   dropPermission(alias: string): void;
+
+  /**
+   * Adds a url to this function.
+   */
   addUrl(url: UrlConfig): void;
+
+  /**
+   * Add an environment variable to this function.
+   */
+  addEnvironment(key: string, value: string): IFunction;
+
+  /**
+   * Adds an event source to this function.
+   *
+   * The following example adds an SQS Queue as an event source:
+   * ```
+   * myFunction.addEventSource({
+   *  eventSourceArn: myQueue.queueOutputs.arn,
+   * });
+   * ```
+   */
+  addEventSource(id: string, source: EventSourceMappingConfig): void;
+
+  /**
+   * Configures options for asynchronous invocation.
+   */
+  configureAsyncInvoke(options: EventInvokeConfig): void;
+
+  /*
+   * Give Function accesslevel permissions to bucket
+   */
+  bucketPermissions(
+    bucket: IBucket,
+    permissions: AwsAccessLevels,
+    objectsKeyPattern?: any,
+  ): void;
+
+  /**
+   * Give Function accesslevel permissions to queue
+   */
+  queuePermissions(bucket: IQueue, permissions: AwsAccessLevels): void;
+
+  /**
+   * Give Function permission to invoke another function
+   *
+   * (doesn't work for cross-account resources)
+   */
+  functionInvokePermission(fn: IFunction): void;
 }
 
 /**
@@ -96,6 +253,10 @@ export interface IFunction extends IAwsBeacon {
  * of code in response to events in AWS, enabling serverless backend solutions.
  *
  * The Lambda Function itself includes source code and runtime configuration.
+ *
+ * This Beacon manages permissions as part of the function Principal iam policy.
+ * This works for same account resources, but for cross-account resources,
+ * you may need to manage access as part of the Resource iam policy.
  *
  * @resource aws_lambda_function
  * @beacon-class compute.IFunction
@@ -128,6 +289,13 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
     return this._url;
   }
 
+  private _eventSources: {
+    [id: string]: lambdaEventSourceMapping.LambdaEventSourceMapping;
+  } = {};
+  public get eventSources(): lambdaEventSourceMapping.LambdaEventSourceMapping[] {
+    return Object.values(this._eventSources);
+  }
+
   private _securityGroup?: securityGroup.SecurityGroup;
   public get securityGroup(): securityGroup.SecurityGroup | undefined {
     return this._securityGroup;
@@ -142,10 +310,11 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
 
     const {
       environment: variables,
-      logRetentionInDays = 7,
+      logRetentionInDays = RetentionDays.ONE_WEEK,
       memorySize = 512,
       timeout = 600,
       layers,
+      reservedConcurrentExecutions,
     } = props;
     this.environment = variables || {};
 
@@ -176,10 +345,17 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
 
     const fnOptions: lambdaFunction.LambdaFunctionConfig = {
       functionName: this._functionName,
+      description: props.description,
       role: this.role.arn,
+      architectures: [
+        // This is an array, but maximum length is 1!
+        // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html#cfn-lambda-function-architectures
+        props.architecture?.toString() ?? Architecture.X86_64.toString(),
+      ],
       memorySize,
       timeout,
       layers,
+      reservedConcurrentExecutions,
       environment: {
         variables: Lazy.anyValue({
           produce: (_context: IResolveContext) => {
@@ -188,6 +364,9 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
         }) as any,
       },
       vpcConfig: this.parseVpcConfig(props.networkConfig),
+      tracingConfig: this.parseTracingConfig(props.tracing ?? Tracing.ACTIVE),
+      deadLetterConfig: this.parseDeadLetterConfig(props.deadLetterQueue),
+      // retryAttempts: 2, // TODO: Add aws_lambda_function_event_invoke_config
       dependsOn: [logGroup],
     };
 
@@ -196,6 +375,37 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
       "Resource",
       fnOptions,
     );
+
+    for (const [id, event] of Object.entries(props.events || {})) {
+      this.addEventSource(id, event);
+    }
+
+    // Event Invoke Config
+    if (
+      props.onFailure ||
+      props.onSuccess ||
+      props.maxEventAge ||
+      props.retryAttempts !== undefined
+    ) {
+      this.configureAsyncInvoke({
+        qualifier: "$LATEST",
+        maximumEventAgeInSeconds: props.maxEventAge?.toSeconds(),
+        maximumRetryAttempts: props.retryAttempts,
+        ...(props.onFailure || props.onSuccess
+          ? {
+              destinationConfig: {
+                ...(props.onFailure
+                  ? { onFailure: { destination: props.onFailure } }
+                  : undefined),
+                ...(props.onSuccess
+                  ? { onSuccess: { destination: props.onSuccess } }
+                  : undefined),
+              },
+            }
+          : undefined),
+      });
+    }
+
     this._outputs = {
       name: this._functionName, // not a token
       arn: this.resource.arn,
@@ -265,6 +475,101 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
     };
   }
 
+  // TODO: Support sns.ITopic + sns:Publish topicArn
+  /**
+   * Optionally create LambdaFunctionDeadLetterConfig
+   */
+  private parseDeadLetterConfig(
+    deadLetterQueue?: IQueue,
+  ): lambdaFunction.LambdaFunctionDeadLetterConfig | undefined {
+    if (deadLetterQueue) {
+      this.role.addPolicyStatements(
+        new Statement.Sqs()
+          .allow()
+          .toSendMessage()
+          .on(deadLetterQueue.queueOutputs.arn),
+      );
+      return {
+        targetArn: deadLetterQueue.queueOutputs.arn,
+      };
+    } else {
+      return undefined;
+    }
+  }
+
+  private parseTracingConfig(
+    tracing: Tracing,
+  ): lambdaFunction.LambdaFunctionTracingConfig | undefined {
+    if (tracing === undefined || tracing === Tracing.DISABLED) {
+      return undefined;
+    }
+    this.role.addPolicyStatements(
+      new Statement.Xray()
+        .allow()
+        .toPutTraceSegments()
+        .toPutTelemetryRecords()
+        .onAllResources(),
+    );
+    return {
+      mode: tracing,
+    };
+  }
+
+  public bucketPermissions(
+    bucket: IBucket,
+    access: AwsAccessLevels,
+    objectsKeyPattern: any = "*",
+  ) {
+    //TODO: Add kms permissions if bucket is encrypted
+    //TODO: Manage policy doc length?
+    const s3Permissions = new Statement.S3()
+      .allow()
+      .on(bucket.bucketOutputs.arn, bucket.arnForObjects(objectsKeyPattern));
+    this.addAccessLevels(s3Permissions, access);
+    this.role.addPolicyStatements(s3Permissions);
+  }
+
+  public queuePermissions(queue: IQueue, access: AwsAccessLevels) {
+    //TODO: Add kms permissions if queue is encrypted
+    //TODO: Manage policy doc length?
+    const sqsPermissions = new Statement.Sqs()
+      .allow()
+      .on(queue.queueOutputs.arn);
+    this.addAccessLevels(sqsPermissions, access);
+    this.role.addPolicyStatements(sqsPermissions);
+  }
+
+  public functionInvokePermission(fn: IFunction) {
+    // TODO: Handle Lambda version, cross account invokes?
+    this.role.addPolicyStatements(
+      new Statement.Lambda()
+        .allow()
+        .toInvokeAsync()
+        .toInvokeFunction()
+        .on(fn.functionOutputs.arn),
+    );
+  }
+
+  private addAccessLevels(stmt: Statement.All, access: AwsAccessLevels) {
+    /* eslint-disable no-bitwise */
+    if (access & AwsAccessLevels.LIST) {
+      stmt.allListActions();
+    }
+    if (access & AwsAccessLevels.READ) {
+      stmt.allReadActions();
+    }
+    if (access & AwsAccessLevels.TAGGING) {
+      stmt.allTaggingActions();
+    }
+    if (access & AwsAccessLevels.WRITE) {
+      stmt.allWriteActions();
+    }
+    if (access & AwsAccessLevels.PERMISSION_MANAGEMENT) {
+      stmt.allPermissionManagementActions();
+    }
+    /* eslint-enable no-bitwise */
+  }
+
   /**
    * Gives an external source (like an EventBridge Rule, SNS, or S3) permission
    * to access the Lambda function.
@@ -287,10 +592,82 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
    * A function URL is a dedicated HTTP(S) endpoint for a Lambda function.
    */
   public addUrl(url: UrlConfig) {
+    // TODO: Error if url already exists?
     this._url = new lambdaFunctionUrl.LambdaFunctionUrl(this, "url", {
       ...url,
       functionName: this.resource.arn,
     });
+  }
+
+  public addEventSource(id: string, source: EventSourceMappingConfig): void {
+    // use crypt.createHash to generate a unique identifier for the event source instead?
+    let eventSource = this._eventSources[id];
+    if (!eventSource) {
+      eventSource = new lambdaEventSourceMapping.LambdaEventSourceMapping(
+        this,
+        id,
+        {
+          ...source,
+          functionName: this.resource.functionName,
+        },
+      );
+      this._eventSources[id] = eventSource;
+    }
+  }
+
+  public configureAsyncInvoke(options: EventInvokeConfig): void {
+    if (this.node.tryFindChild("EventInvokeConfig") !== undefined) {
+      throw new Error(
+        `An EventInvokeConfig has already been configured for the function at ${this.node.path}`,
+      );
+    }
+
+    new lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig(
+      this,
+      "EventInvokeConfig",
+      {
+        functionName: this.resource.functionName,
+        ...options,
+      },
+    );
+  }
+
+  /**
+   * Adds an environment variable to this Lambda function.
+   * If this is a ref to a Lambda function, this operation results in a no-op.
+   * @param key The environment variable key.
+   * @param value The environment variable's value.
+   */
+  public addEnvironment(key: string, value: string): IFunction {
+    // Reserved environment variables will fail during cloudformation deploy if they're set.
+    // This check is just to allow CDK to fail faster when these are specified.
+    const reservedEnvironmentVariables = [
+      "_HANDLER",
+      "_X_AMZN_TRACE_ID",
+      "AWS_DEFAULT_REGION",
+      "AWS_REGION",
+      "AWS_EXECUTION_ENV",
+      "AWS_LAMBDA_FUNCTION_NAME",
+      "AWS_LAMBDA_FUNCTION_MEMORY_SIZE",
+      "AWS_LAMBDA_FUNCTION_VERSION",
+      "AWS_LAMBDA_INITIALIZATION_TYPE",
+      "AWS_LAMBDA_LOG_GROUP_NAME",
+      "AWS_LAMBDA_LOG_STREAM_NAME",
+      "AWS_ACCESS_KEY",
+      "AWS_ACCESS_KEY_ID",
+      "AWS_SECRET_ACCESS_KEY",
+      "AWS_SESSION_TOKEN",
+      "AWS_LAMBDA_RUNTIME_API",
+      "LAMBDA_TASK_ROOT",
+      "LAMBDA_RUNTIME_DIR",
+    ];
+    if (reservedEnvironmentVariables.includes(key)) {
+      throw new Error(
+        `${key} environment variable is reserved by the lambda runtime and can not be set manually. See https://docs.aws.amazon.com/lambda/latest/dg/configuration-envvars.html`,
+      );
+    }
+    this.environment[key] = value;
+    return this;
   }
 
   /**
@@ -310,11 +687,42 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
 
     for (const [id, permission] of Object.entries(this.permissions)) {
       if (this.node.tryFindChild(id)) continue; // ignore if already generated
-      new lambdaPermission.LambdaPermission(this, id, {
+      const permissionRes = new lambdaPermission.LambdaPermission(this, id, {
         ...permission,
         functionName: this.resource.functionName,
       });
+      if (permission.dependees !== undefined) {
+        // node.addDependency doesn't work - see: https://github.com/hashicorp/terraform-cdk/issues/785
+        // permissionRes.node.addDependency(...permission.dependees);
+        for (const dependee of permission.dependees) {
+          if (dependee.dependsOn !== undefined) {
+            dependee.dependsOn.push(permissionRes.fqn);
+          } else {
+            dependee.dependsOn = [permissionRes.fqn];
+          }
+        }
+      }
     }
     return {};
   }
+}
+
+/**
+ * X-Ray Tracing Modes (https://docs.aws.amazon.com/lambda/latest/dg/API_TracingConfig.html)
+ */
+export enum Tracing {
+  /**
+   * Lambda will respect any tracing header it receives from an upstream service.
+   * If no tracing header is received, Lambda will sample the request based on a fixed rate. Please see the [Using AWS Lambda with AWS X-Ray](https://docs.aws.amazon.com/lambda/latest/dg/services-xray.html) documentation for details on this sampling behavior.
+   */
+  ACTIVE = "Active",
+  /**
+   * Lambda will only trace the request from an upstream service
+   * if it contains a tracing header with "sampled=1"
+   */
+  PASS_THROUGH = "PassThrough",
+  /**
+   * Lambda will not trace any request.
+   */
+  DISABLED = "Disabled",
 }

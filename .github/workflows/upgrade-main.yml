@@ -20,14 +20,14 @@ jobs:
           ref: main
       - uses: actions/setup-go@v5
         with:
-          go-version: ^1.22.2
+          go-version: ^1.23.0
       - uses: oven-sh/setup-bun@v1
         with:
-          bun-version: 1.1.10
-      - uses: hashicorp/setup-terraform@v3
+          bun-version: 1.1.26
+      - uses: opentofu/setup-opentofu@v1
         with:
           terraform_wrapper: false
-          terraform_version: 1.9.4
+          tofu_version: 1.8.2
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
         with:
@@ -44,14 +44,14 @@ jobs:
         id: create_patch
         run: |-
           git add .
-          git diff --staged --patch --exit-code > .repo.patch || echo "patch_created=true" >> $GITHUB_OUTPUT
+          git diff --staged --patch --exit-code > repo.patch || echo "patch_created=true" >> $GITHUB_OUTPUT
         working-directory: ./
       - name: Upload patch
         if: steps.create_patch.outputs.patch_created
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v4.3.6
         with:
-          name: .repo.patch
-          path: .repo.patch
+          name: repo.patch
+          path: repo.patch
           overwrite: true
   pr:
     name: Create Pull Request
@@ -68,10 +68,10 @@ jobs:
       - name: Download patch
         uses: actions/download-artifact@v4
         with:
-          name: .repo.patch
+          name: repo.patch
           path: ${{ runner.temp }}
       - name: Apply patch
-        run: '[ -s ${{ runner.temp }}/.repo.patch ] && git apply ${{ runner.temp }}/.repo.patch || echo "Empty patch. Skipping."'
+        run: '[ -s ${{ runner.temp }}/repo.patch ] && git apply ${{ runner.temp }}/repo.patch || echo "Empty patch. Skipping."'
       - name: Set git identity
         run: |-
           git config user.name "github-actions"

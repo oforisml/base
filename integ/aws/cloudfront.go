@@ -1,0 +1,211 @@
+package aws
+
+import (
+	"context"
+	"encoding/json"
+	"fmt"
+	"strconv"
+	"strings"
+
+	"github.com/aws/aws-sdk-go-v2/config"
+
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront"
+	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
+	"github.com/gruntwork-io/terratest/modules/logger"
+	"github.com/gruntwork-io/terratest/modules/testing"
+	"github.com/stretchr/testify/require"
+)
+
+type CloudFrontTestFunctionResult struct {
+	Utilization  int // The amount of time that the function took to run as a percentage of the maximum allowed time.
+	ErrorMessage *string
+	// The event object returned by the function. For more information about the
+	// structure of the event object, see [Event object structure]in the Amazon CloudFront Developer Guide.
+	//
+	// [Event object structure]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/functions-event-structure.html
+	Output *map[string]interface{}
+	// Contains the log lines that the function wrote (if any) when running the test.
+	ExecutionLogs []string
+}
+
+const invalidFunctionErrorPrefix = "The CloudFront function associated with the CloudFront distribution is invalid or could not run. Error: "
+
+// responseValidator is a function that validates the response of a CloudFront function test.
+type responseValidator func(*CloudFrontTestFunctionResult) (bool, *string)
+
+// Tests a CloudFront function.
+//
+// To test a function, you provide an event object that represents an HTTP request
+// or response that your CloudFront distribution could receive in production.
+// CloudFront runs the function, passing it the event object that you provided, and
+// returns the function's result (the modified event object) in the response. The
+// response also contains function logs and error messages, if any exist. For more
+// information about testing functions, see [Testing functions]in the Amazon CloudFront Developer
+// Guide.
+//
+// To test a function, you provide the function's name and stage (DEVELOPMENT or LIVE)
+// along with the event object. To get the function's name and version, you can use
+// ListFunctions and DescribeFunction.
+//
+// [Testing functions]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/managing-functions.html#test-function
+func TestCloudFrontFunction(t testing.TestingT, name string, stage string, event CloudFrontFunctionEvent, expectedError string, expectedOutput *map[string]interface{}) error {
+	validateResponse := responseValidator(func(r *CloudFrontTestFunctionResult) (bool, *string) {
+		failures := []string{}
+		gotError := aws.ToString(r.ErrorMessage)
+		if gotError != expectedError {
+			failures = append(failures, fmt.Sprintf("Got Error :%s\nWant Error:%s", gotError, expectedError))
+		}
+
+		if expectedOutput != nil {
+			expectedOutputBytes, _ := json.MarshalIndent(*r.Output, "", "  ")
+			if r.Output == nil {
+				failures = append(failures, fmt.Sprintf("Got nil Output\nWant Output:%v", string(expectedOutputBytes)))
+			} else {
+				prettyPrint, err := PrettyPrintBeforeAfter(*r.Output, *expectedOutput)
+				if err != nil {
+					failures = append(failures, fmt.Sprintf("Error matching expected Output:%v", err))
+				}
+				if prettyPrint != "" {
+					failures = append(failures, fmt.Sprintf("Expected Output mismatch (-got, +want):%s", prettyPrint))
+				}
+			}
+		} else {
+			if r.Output != nil {
+				outputBytes, _ := json.MarshalIndent(*r.Output, "", "  ")
+				failures = append(failures, fmt.Sprintf("Got Output:%v\nWant nil Output", string(outputBytes)))
+			}
+		}
+
+		if len(failures) > 0 {
+			failureMessage := strings.Join(failures, "\n")
+			return false, &failureMessage
+		}
+		return true, nil
+	})
+	return TestCloudFrontFunctionWithCustomValidation(t, name, stage, event, validateResponse)
+}
+
+// TestCloudFrontFunctionWithCustomValidation performs a Function test and validate the response.
+func TestCloudFrontFunctionWithCustomValidation(t testing.TestingT, name string, stage string, event CloudFrontFunctionEvent, validateResponse responseValidator) error {
+	functionStage := assertFunctionStage(t, stage)
+	err := TestCloudFrontFunctionWithCustomValidationE(t, name, functionStage, event, validateResponse)
+	require.NoError(t, err)
+	return nil
+}
+
+// TestCloudFrontFunctionWithCustomValidationE performs a Function test and validate the response.
+func TestCloudFrontFunctionWithCustomValidationE(t testing.TestingT, name string, stage types.FunctionStage, event CloudFrontFunctionEvent, validateResponse responseValidator) error {
+	response, err := TestCloudFrontFunctionE(t, name, stage, event)
+	if err != nil {
+		return err
+	}
+	// log utilization for information purposes
+	logger.Log(t, fmt.Sprintf("CloudFront Function Utilization: (%d%%)", response.Utilization))
+	if ok, failures := validateResponse(response); !ok {
+		return CloudFrontFunctionValidationFailed{
+			FunctionName: name + ":" + string(stage),
+			Failures:     failures,
+		}
+	}
+	return nil
+}
+
+// TestCloudFrontFunctionE performs a Function test and validate the response.
+func TestCloudFrontFunctionE(t testing.TestingT, name string, stage types.FunctionStage, event CloudFrontFunctionEvent) (*CloudFrontTestFunctionResult, error) {
+	ctx := context.TODO()
+
+	jsonData, err := json.Marshal(event)
+	if err != nil {
+		return nil, fmt.Errorf("error serializing CloudFront Function Event: %q", err)
+	}
+
+	client := NewCloudFrontclient(t)
+	functionDetails, err := client.DescribeFunction(ctx, &cloudfront.DescribeFunctionInput{
+		Name:  aws.String(name),
+		Stage: stage,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	r, err := client.TestFunction(ctx, &cloudfront.TestFunctionInput{
+		EventObject: jsonData,
+		IfMatch:     functionDetails.ETag,
+		Name:        aws.String(name),
+		Stage:       stage,
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return parseTestResult(r.TestResult)
+}
+
+// NewCloudFrontclient returns a client for CloudFront. This will fail the test and
+// stop execution if there is an error.
+func NewCloudFrontclient(t testing.TestingT) *cloudfront.Client {
+	sess, err := NewCloudFrontclientE(t)
+	require.NoError(t, err)
+	return sess
+}
+
+// NewCloudFrontclientE returns a client for CloudFront.
+func NewCloudFrontclientE(t testing.TestingT) (*cloudfront.Client, error) {
+	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion("us-east-1"))
+	if err != nil {
+		return nil, err
+	}
+	return cloudfront.NewFromConfig(cfg), nil
+}
+
+// assertFunctionStage validates the function stage or fails the test.
+func assertFunctionStage(t testing.TestingT, stage string) types.FunctionStage {
+	var functionStage types.FunctionStage
+	switch stage {
+	case string(types.FunctionStageDevelopment):
+		functionStage = types.FunctionStageDevelopment
+	case string(types.FunctionStageLive):
+		functionStage = types.FunctionStageLive
+	default:
+		t.Errorf("Invalid function stage: %s", stage)
+		return types.FunctionStageDevelopment
+	}
+	return functionStage
+}
+
+func parseTestResult(testResult *types.TestResult) (*CloudFrontTestFunctionResult, error) {
+	result := CloudFrontTestFunctionResult{
+		ExecutionLogs: testResult.FunctionExecutionLogs,
+	}
+	var err error
+
+	if aws.ToString(testResult.FunctionErrorMessage) != "" {
+		result.ErrorMessage = aws.String(invalidFunctionErrorPrefix + *testResult.FunctionErrorMessage)
+	}
+
+	if testResult.ComputeUtilization != nil {
+		result.Utilization, err = strconv.Atoi(aws.ToString(testResult.ComputeUtilization))
+		if err != nil {
+			return &result, err
+		}
+	}
+	var output interface{}
+	if testResult.FunctionOutput != nil {
+		err := json.Unmarshal([]byte(*testResult.FunctionOutput), &output)
+		if err != nil {
+			return &result, fmt.Errorf("JSON decode error: %w", err)
+		}
+	}
+	if output != nil {
+		outputMap, ok := output.(map[string]interface{})
+		if ok {
+			if len(outputMap) == 0 {
+				result.Output = nil
+			} else {
+				result.Output = &outputMap
+			}
+		}
+	}
+	return &result, nil
+}

@@ -124,7 +124,8 @@ func deployUsingTerraform(t *testing.T, workingDir string) {
 	// Construct the terraform options with default retryable errors to handle the most common retryable errors in
 	// terraform testing.
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: workingDir,
+		TerraformDir:    workingDir,
+		TerraformBinary: "tofu",
 	})
 
 	// Save the Terraform Options struct, so future test stages can use it
