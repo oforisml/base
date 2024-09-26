@@ -3,7 +3,7 @@ import { CollectionKind, PrimitiveType } from "@jsii/spec";
 import { ProjenStruct, Struct } from "@mrgrain/jsii-struct-builder";
 import { Component, typescript } from "projen";
 
-const namespace = "staticsite";
+const namespace = "storage";
 
 /**
  * S3BucketWebsiteConfigurationConfig without bucket, redirectAllRequestsTo, expectedBucketOwner
@@ -142,6 +142,48 @@ export class S3BucketCorsConfigurationConfigStructBuilder extends Component {
               },
             ],
           },
+        },
+      });
+  }
+}
+
+/**
+ * LifecycleConfigurationRuleConfig without status and prefix
+ */
+export class S3BucketLifecycleConfigurationRuleStructBuilder extends Component {
+  constructor(project: typescript.TypeScriptProject) {
+    super(project);
+    const struct = new ProjenStruct(project, {
+      name: "LifecycleConfigurationRule",
+      description:
+        "S3 bucket [lifecycle configuration](https://docs.aws.amazon.com/AmazonS3/latest/userguide/object-lifecycle-mgmt.html) rules.",
+      filePath: path.join(
+        project.srcdir,
+        "aws",
+        namespace,
+        "lifecycle-config.generated.ts",
+      ),
+    });
+
+    struct
+      .mixin(
+        Struct.fromFqn(
+          "@cdktf/provider-aws.s3BucketLifecycleConfiguration.S3BucketLifecycleConfigurationRule",
+        ),
+      )
+      .omit(
+        "status",
+        "prefix", // prefix is deprecated and will be replaced by filter block
+      )
+      .add({
+        name: "enabled",
+        optional: true,
+        docs: {
+          summary: "Specifies the lifecycle rule status.",
+          default: "`true`",
+        },
+        type: {
+          primitive: PrimitiveType.Boolean,
         },
       });
   }

@@ -1,0 +1,270 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Function with Storage Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_log_group": {
+      "HelloWorld_LogGroup_948040CF": {
+        "name": "/aws/lambda/123e4567-e89b-12d3-HelloWorld",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_policy": {
+      "HelloWorld_ServiceRole_RolePolicy_A17AC85E": {
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "name_prefix": "123e4567-e89b-12d3",
+        "path": "/",
+        "policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":[\\"logs:CreateLogStream\\",\\"logs:PutLogEvents\\"],\\"Resource\\":[\\"\${aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF.arn}\\",\\"\${aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF.arn}:log-stream:*\\"],\\"Effect\\":\\"Allow\\"},{\\"Action\\":[\\"xray:PutTelemetryRecords\\",\\"xray:PutTraceSegments\\"],\\"Resource\\":\\"*\\",\\"Effect\\":\\"Allow\\"},{\\"Action\\":[\\"s3:DescribeJob\\",\\"s3:DescribeMultiRegionAccessPointOperation\\",\\"s3:GetAccelerateConfiguration\\",\\"s3:GetAccessGrant\\",\\"s3:GetAccessGrantsInstance\\",\\"s3:GetAccessGrantsInstanceForPrefix\\",\\"s3:GetAccessGrantsInstanceResourcePolicy\\",\\"s3:GetAccessGrantsLocation\\",\\"s3:GetAccessPoint\\",\\"s3:GetAccessPointConfigurationForObjectLambda\\",\\"s3:GetAccessPointForObjectLambda\\",\\"s3:GetAccessPointPolicy\\",\\"s3:GetAccessPointPolicyForObjectLambda\\",\\"s3:GetAccessPointPolicyStatus\\",\\"s3:GetAccessPointPolicyStatusForObjectLambda\\",\\"s3:GetAccountPublicAccessBlock\\",\\"s3:GetAnalyticsConfiguration\\",\\"s3:GetBucketAcl\\",\\"s3:GetBucketCORS\\",\\"s3:GetBucketLocation\\",\\"s3:GetBucketLogging\\",\\"s3:GetBucketNotification\\",\\"s3:GetBucketObjectLockConfiguration\\",\\"s3:GetBucketOwnershipControls\\",\\"s3:GetBucketPolicy\\",\\"s3:GetBucketPolicyStatus\\",\\"s3:GetBucketPublicAccessBlock\\",\\"s3:GetBucketRequestPayment\\",\\"s3:GetBucketTagging\\",\\"s3:GetBucketVersioning\\",\\"s3:GetBucketWebsite\\",\\"s3:GetDataAccess\\",\\"s3:GetEncryptionConfiguration\\",\\"s3:GetIntelligentTieringConfiguration\\",\\"s3:GetInventoryConfiguration\\",\\"s3:GetJobTagging\\",\\"s3:GetLifecycleConfiguration\\",\\"s3:GetMetricsConfiguration\\",\\"s3:GetMultiRegionAccessPoint\\",\\"s3:GetMultiRegionAccessPointPolicy\\",\\"s3:GetMultiRegionAccessPointPolicyStatus\\",\\"s3:GetMultiRegionAccessPointRoutes\\",\\"s3:GetObject\\",\\"s3:GetObjectAcl\\",\\"s3:GetObjectAttributes\\",\\"s3:GetObjectLegalHold\\",\\"s3:GetObjectRetention\\",\\"s3:GetObjectTagging\\",\\"s3:GetObjectTorrent\\",\\"s3:GetObjectVersion\\",\\"s3:GetObjectVersionAcl\\",\\"s3:GetObjectVersionAttributes\\",\\"s3:GetObjectVersionForReplication\\",\\"s3:GetObjectVersionTagging\\",\\"s3:GetObjectVersionTorrent\\",\\"s3:GetReplicationConfiguration\\",\\"s3:GetStorageLensConfiguration\\",\\"s3:GetStorageLensConfigurationTagging\\",\\"s3:GetStorageLensDashboard\\",\\"s3:GetStorageLensGroup\\"],\\"Resource\\":[\\"\${aws_s3_bucket.HelloWorldBucket_D435D97F.arn}\\",\\"\${aws_s3_bucket.HelloWorldBucket_D435D97F.arn}/*\\"],\\"Effect\\":\\"Allow\\"}]}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "HelloWorld_ServiceRole_F3F7D8B0": {
+        "assume_role_policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":[\\"sts:AssumeRole\\",\\"sts:SetSourceIdentity\\"],\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"Service\\":[\\"lambda.amazonaws.com\\"]}}]}",
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "name_prefix": "123e4567-e89b-12d3",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "HelloWorld_ServiceRole_PolicyAttachment_1ADB2D7F": {
+        "policy_arn": "\${aws_iam_policy.HelloWorld_ServiceRole_RolePolicy_A17AC85E.arn}",
+        "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.name}"
+      }
+    },
+    "aws_lambda_function": {
+      "HelloWorld_7964D1E8": {
+        "architectures": [
+          "x86_64"
+        ],
+        "depends_on": [
+          "aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
+        "function_name": "123e4567-e89b-12d3-HelloWorld",
+        "handler": "hello-world.handler",
+        "memory_size": 512,
+        "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
+        "runtime": "nodejs20.x",
+        "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "timeout": 600,
+        "tracing_config": {
+          "mode": "Active"
+        }
+      }
+    },
+    "aws_s3_bucket": {
+      "HelloWorldBucket_D435D97F": {
+        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "tags": {
+          "Name": "Test-HelloWorldBucket",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`Function with event rules Should handle dependencies on permissions 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudwatch_event_rule": {
+      "HelloWorldRule_4DC52DAE": {
+        "depends_on": [
+          "\${aws_lambda_permission.HelloWorld_InvokeByCloudwatch_B2A75512}"
+        ],
+        "name_prefix": "123e4567-e89b-12d3",
+        "schedule_expression": "rate(1 day)",
+        "state": "ENABLED",
+        "tags": {
+          "Name": "Test-HelloWorldRule",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_cloudwatch_event_target": {
+      "HelloWorldRule_follower_B172665C": {
+        "arn": "\${aws_lambda_function.HelloWorld_7964D1E8.arn}",
+        "rule": "\${aws_cloudwatch_event_rule.HelloWorldRule_4DC52DAE.name}"
+      }
+    },
+    "aws_cloudwatch_log_group": {
+      "HelloWorld_LogGroup_948040CF": {
+        "name": "/aws/lambda/123e4567-e89b-12d3-HelloWorld",
+        "retention_in_days": 7,
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_policy": {
+      "HelloWorld_ServiceRole_RolePolicy_A17AC85E": {
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "name_prefix": "123e4567-e89b-12d3",
+        "path": "/",
+        "policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":[\\"logs:CreateLogStream\\",\\"logs:PutLogEvents\\"],\\"Resource\\":[\\"\${aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF.arn}\\",\\"\${aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF.arn}:log-stream:*\\"],\\"Effect\\":\\"Allow\\"},{\\"Action\\":[\\"xray:PutTelemetryRecords\\",\\"xray:PutTraceSegments\\"],\\"Resource\\":\\"*\\",\\"Effect\\":\\"Allow\\"}]}",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_role": {
+      "HelloWorld_ServiceRole_F3F7D8B0": {
+        "assume_role_policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":[\\"sts:AssumeRole\\",\\"sts:SetSourceIdentity\\"],\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"Service\\":[\\"lambda.amazonaws.com\\"]}}]}",
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "name_prefix": "123e4567-e89b-12d3",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_iam_role_policy_attachment": {
+      "HelloWorld_ServiceRole_PolicyAttachment_1ADB2D7F": {
+        "policy_arn": "\${aws_iam_policy.HelloWorld_ServiceRole_RolePolicy_A17AC85E.arn}",
+        "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.name}"
+      }
+    },
+    "aws_lambda_function": {
+      "HelloWorld_7964D1E8": {
+        "architectures": [
+          "x86_64"
+        ],
+        "depends_on": [
+          "aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF"
+        ],
+        "environment": {
+          "variables": {
+          }
+        },
+        "filename": "assets/HelloWorld_NodejsAsset_04D667C4/9A3227D39E16A36D4510660AB9C595A1/archive.zip",
+        "function_name": "123e4567-e89b-12d3-HelloWorld",
+        "handler": "hello-world.handler",
+        "memory_size": 512,
+        "role": "\${aws_iam_role.HelloWorld_ServiceRole_F3F7D8B0.arn}",
+        "runtime": "nodejs20.x",
+        "source_code_hash": "9A3227D39E16A36D4510660AB9C595A1",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "timeout": 600,
+        "tracing_config": {
+          "mode": "Active"
+        }
+      }
+    },
+    "aws_lambda_permission": {
+      "HelloWorld_InvokeByCloudwatch_B2A75512": {
+        "action": "lambda:InvokeFunction",
+        "function_name": "\${aws_lambda_function.HelloWorld_7964D1E8.function_name}",
+        "principal": "events.amazonaws.com",
+        "source_arn": "\${aws_cloudwatch_event_rule.HelloWorldRule_4DC52DAE.arn}"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;

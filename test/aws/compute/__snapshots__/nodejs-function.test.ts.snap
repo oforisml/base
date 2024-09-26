@@ -49,6 +49,9 @@ exports[`Function Should synth and match SnapShot 1`] = `
     },
     "aws_lambda_function": {
       "HelloWorld_7964D1E8": {
+        "architectures": [
+          "x86_64"
+        ],
         "depends_on": [
           "aws_cloudwatch_log_group.HelloWorld_LogGroup_948040CF"
         ],
@@ -68,15 +71,23 @@ exports[`Function Should synth and match SnapShot 1`] = `
           "et:grid:EnvironmentName": "Test",
           "et:grid:UUID": "123e4567-e89b-12d3"
         },
-        "timeout": 600
+        "timeout": 600,
+        "tracing_config": {
+          "mode": "Active"
+        }
       }
     }
   },
   "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
     "required_providers": {
       "aws": {
         "source": "aws",
-        "version": "5.60.0"
+        "version": "5.68.0"
       }
     }
   }

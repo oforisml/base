@@ -51,7 +51,7 @@ var (
 	}
 )
 
-// Test the simple-ipv4-vpc app
+// Test the Public Website bucket
 func TestPublicWebsiteBucket(t *testing.T) {
 	t.Parallel()
 	testApp := "public-website-bucket"
@@ -81,6 +81,55 @@ func TestPublicWebsiteBucket(t *testing.T) {
 	// Validate the function URL
 	test_structure.RunTestStage(t, "validate", func() {
 		testWebsiteUrl(t, tfWorkingDir)
+	})
+
+	// rename the environment name
+	envVars["ENVIRONMENT_NAME"] = "renamed"
+	test_structure.RunTestStage(t, "rename_app", func() {
+		synthApp(t, testApp, tfWorkingDir, envVars)
+	})
+
+	// confirm no changes in plan
+	test_structure.RunTestStage(t, "validate_rename", func() {
+		replanUsingTerraform(t, tfWorkingDir)
+	})
+}
+
+// Test the Website Bucket with CDN
+func TestCdnWebsiteBucket(t *testing.T) {
+	t.Parallel()
+	testApp := "cdn-website-bucket"
+	tfWorkingDir := filepath.Join("tf", testApp)
+	awsRegion := "us-east-1"
+	hostname := "e2e.envt.io"
+
+	envVars := executors.EnvMap(os.Environ())
+	envVars["AWS_REGION"] = awsRegion
+	envVars["ENVIRONMENT_NAME"] = "test"
+	envVars["STACK_NAME"] = testApp
+	// TODO: Test Curl with the domain name
+	envVars["DNS_ZONE_ID"] = "Z09421741DJE7FPT6K42I"
+	envVars["DNS_DOMAIN_NAME"] = hostname
+	test_structure.SaveString(t, tfWorkingDir, "hostname", hostname)
+
+	// At the end of the test, destroy all the resources
+	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
+		undeployUsingTerraform(t, tfWorkingDir)
+	})
+
+	// Synth the CDKTF app under test
+	test_structure.RunTestStage(t, "synth_app", func() {
+		synthApp(t, testApp, tfWorkingDir, envVars)
+	})
+
+	// Deploy using Terraform
+	test_structure.RunTestStage(t, "deploy_terraform", func() {
+		deployUsingTerraform(t, tfWorkingDir)
+	})
+
+	// Validate the CDN
+	test_structure.RunTestStage(t, "validate", func() {
+		testCdnUrl(t, tfWorkingDir)
 	})
 
 	// rename the environment name
@@ -137,7 +186,8 @@ func deployUsingTerraform(t *testing.T, workingDir string) {
 	// Construct the terraform options with default retryable errors to handle the most common retryable errors in
 	// terraform testing.
 	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir: workingDir,
+		TerraformDir:    workingDir,
+		TerraformBinary: "tofu",
 	})
 
 	// Save the Terraform Options struct, so future test stages can use it
@@ -156,6 +206,19 @@ func testWebsiteUrl(t *testing.T, tfWorkingDir string) {
 	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
 	outputMap := terraform.OutputMap(t, terraformOptions, "website")
 	responseCode, _ := http_helper.HttpGet(t, fmt.Sprintf("http://%s", outputMap["websiteUrl"]), nil)
+	assert.Equal(t, 200, responseCode)
+}
+
+// Ensure Cdn works
+func testCdnUrl(t *testing.T, tfWorkingDir string) {
+	hostname := test_structure.LoadString(t, tfWorkingDir, "hostname")
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	outputMap := terraform.OutputMap(t, terraformOptions, "cdn")
+	if hostname == "" {
+		hostname = outputMap["domainName"]
+	}
+	responseCode, _ := http_helper.HttpGet(t, fmt.Sprintf("https://%s", hostname), nil)
 	assert.Equal(t, 200, responseCode)
 }
 

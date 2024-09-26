@@ -1,5 +1,9 @@
 # Network e2e tests
 
+
+> [!IMPORTANT]
+> Terratest uses compiled package from `lib` directory, run `pnpm compile` after making changes!
+
 Run terratest:
 
 ```sh

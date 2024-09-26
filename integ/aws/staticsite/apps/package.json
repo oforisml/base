@@ -2,7 +2,8 @@
   "name": "integ-aws-staticsite",
   "type": "module",
   "scripts": {
-    "public-website-bucket": "bun run ./public-website-bucket.ts"
+    "public-website-bucket": "bun run ./public-website-bucket.ts",
+    "cdn-website-bucket": "bun run ./cdn-website-bucket.ts"
   },
   "dependencies": {
     "cdktf": "^0.20.8",

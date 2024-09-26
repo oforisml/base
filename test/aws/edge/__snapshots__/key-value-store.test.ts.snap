@@ -1,0 +1,130 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`KeyValueStore Should associate with edge.Function and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudfront_function": {
+      "Function_76856677": {
+        "code": "whatever",
+        "comment": "Hello World",
+        "key_value_store_associations": [
+          "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}"
+        ],
+        "name": "123e4567-e89b-12d3-hello-world",
+        "publish": true,
+        "runtime": "cloudfront-js-2.0"
+      }
+    },
+    "aws_cloudfront_key_value_store": {
+      "Store_1D2A845B": {
+        "name": "123e4567-e89b-12d3-hello-world"
+      }
+    },
+    "aws_cloudfrontkeyvaluestore_key": {
+      "Store_Key-0_D960E2A5": {
+        "key": "key1",
+        "key_value_store_arn": "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}",
+        "value": "value1"
+      },
+      "Store_Key-1_A1F55497": {
+        "key": "key2",
+        "key_value_store_arn": "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}",
+        "value": "value2"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`KeyValueStore Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_cloudfront_key_value_store": {
+      "Store_1D2A845B": {
+        "name": "123e4567-e89b-12d3-hello-world"
+      }
+    },
+    "aws_cloudfrontkeyvaluestore_key": {
+      "Store_Key-0_D960E2A5": {
+        "key": "key1",
+        "key_value_store_arn": "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}",
+        "value": "value1"
+      },
+      "Store_Key-1_A1F55497": {
+        "key": "key2",
+        "key_value_store_arn": "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}",
+        "value": "{\\"key2.1\\":\\"value2.1\\"}"
+      },
+      "Store_Key-2_54F8556B": {
+        "key": "key3",
+        "key_value_store_arn": "\${aws_cloudfront_key_value_store.Store_1D2A845B.arn}",
+        "value": "[\\"value3.1\\",\\"value3.2\\"]"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;

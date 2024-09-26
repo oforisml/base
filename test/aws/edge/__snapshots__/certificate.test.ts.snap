@@ -1,0 +1,294 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`PublicCertificate Create multi-zone should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_acm_certificate": {
+      "Certificate_4E7ABB08": {
+        "domain_name": "example.net",
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "subject_alternative_names": [
+          "*.example.net",
+          "example.com",
+          "*.example.com"
+        ],
+        "tags": {
+          "Name": "Test-Certificate",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "validation_method": "DNS",
+        "validation_option": [
+          {
+            "domain_name": "example.net",
+            "validation_domain": "example.net"
+          },
+          {
+            "domain_name": "example.com",
+            "validation_domain": "example.com"
+          }
+        ]
+      }
+    },
+    "aws_acm_certificate_validation": {
+      "Certificate_Validation_1DBF2B44": {
+        "certificate_arn": "\${aws_acm_certificate.Certificate_4E7ABB08.arn}",
+        "validation_record_fqdns": [
+          "\${aws_route53_record.Certificate_ValidationRecord-examplecom_F86953B6.fqdn}",
+          "\${aws_route53_record.Certificate_ValidationRecord-examplenet_BF2493D3.fqdn}"
+        ]
+      }
+    },
+    "aws_route53_record": {
+      "Certificate_ValidationRecord-examplecom_F86953B6": {
+        "allow_overwrite": true,
+        "name": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_name}.example.com.",
+        "records": [
+          "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_value}"
+        ],
+        "ttl": 60,
+        "type": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_type}",
+        "zone_id": "\${aws_route53_zone.ExampleComZone_F04104DA.id}"
+      },
+      "Certificate_ValidationRecord-examplenet_BF2493D3": {
+        "allow_overwrite": true,
+        "name": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).1.resource_record_name}.example.net.",
+        "records": [
+          "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).1.resource_record_value}"
+        ],
+        "ttl": 60,
+        "type": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).1.resource_record_type}",
+        "zone_id": "\${aws_route53_zone.ExampleNetZone_99DA6AF7.id}"
+      }
+    },
+    "aws_route53_zone": {
+      "ExampleComZone_F04104DA": {
+        "name": "example.com.",
+        "tags": {
+          "Name": "Test-ExampleComZone",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      },
+      "ExampleNetZone_99DA6AF7": {
+        "name": "example.net.",
+        "tags": {
+          "Name": "Test-ExampleNetZone",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`PublicCertificate Create should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_acm_certificate": {
+      "Certificate_4E7ABB08": {
+        "domain_name": "example.com",
+        "lifecycle": {
+          "create_before_destroy": true
+        },
+        "subject_alternative_names": [
+          "*.example.com"
+        ],
+        "tags": {
+          "Name": "Test-Certificate",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "validation_method": "DNS",
+        "validation_option": [
+          {
+            "domain_name": "example.com",
+            "validation_domain": "example.com"
+          }
+        ]
+      }
+    },
+    "aws_acm_certificate_validation": {
+      "Certificate_Validation_1DBF2B44": {
+        "certificate_arn": "\${aws_acm_certificate.Certificate_4E7ABB08.arn}",
+        "validation_record_fqdns": [
+          "\${aws_route53_record.Certificate_ValidationRecord-examplecom_F86953B6.fqdn}"
+        ]
+      }
+    },
+    "aws_route53_record": {
+      "Certificate_ValidationRecord-examplecom_F86953B6": {
+        "allow_overwrite": true,
+        "name": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_name}.example.com.",
+        "records": [
+          "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_value}"
+        ],
+        "ttl": 60,
+        "type": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_type}",
+        "zone_id": "\${aws_route53_zone.Zone_A5DE4B68.id}"
+      }
+    },
+    "aws_route53_zone": {
+      "Zone_A5DE4B68": {
+        "name": "example.com.",
+        "tags": {
+          "Name": "Test-Zone",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`PublicCertificate Imported DnsZone should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    },
+    "aws_route53_zone": {
+      "Zone_A5DE4B68": {
+        "zone_id": "Z1234567890"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_acm_certificate": {
+      "Certificate_4E7ABB08": {
+        "domain_name": "example.com",
+        "subject_alternative_names": [
+          "*.example.com"
+        ],
+        "tags": {
+          "Name": "Test-Certificate",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        },
+        "validation_method": "DNS",
+        "validation_option": [
+          {
+            "domain_name": "example.com",
+            "validation_domain": "\${data.aws_route53_zone.Zone_A5DE4B68.name}"
+          }
+        ]
+      }
+    },
+    "aws_acm_certificate_validation": {
+      "Certificate_Validation_1DBF2B44": {
+        "certificate_arn": "\${aws_acm_certificate.Certificate_4E7ABB08.arn}",
+        "validation_record_fqdns": [
+          "\${aws_route53_record.Certificate_ValidationRecord-examplecom_F86953B6.fqdn}"
+        ]
+      }
+    },
+    "aws_route53_record": {
+      "Certificate_ValidationRecord-examplecom_F86953B6": {
+        "allow_overwrite": true,
+        "name": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_name}",
+        "records": [
+          "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_value}"
+        ],
+        "ttl": 60,
+        "type": "\${tolist(aws_acm_certificate.Certificate_4E7ABB08.domain_validation_options).0.resource_record_type}",
+        "zone_id": "Z1234567890"
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;

@@ -40,7 +40,7 @@ export interface SimpleIPv4Props extends AwsBeaconProps {
    */
   readonly natGatewayOption?: NatGatewayOption;
   /**
-   * Provides a Service Discovery Private DNS Namespace resource.
+   * Provisions a Service Discovery Private DNS Namespace resource.
    */
   readonly internalDomain: string;
 }

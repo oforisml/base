@@ -70,12 +70,16 @@ func (fc *ForwardingCore) Write(entry zapcore.Entry, fields []zapcore.Field) err
 }
 
 func PrettyPrintResourceChange(rc *tfjson.ResourceChange) (string, error) {
+	return PrettyPrintBeforeAfter(rc.Change.Before, rc.Change.After)
+}
+
+func PrettyPrintBeforeAfter(before interface{}, after interface{}) (string, error) {
 	// Convert Before and After to JSON strings
-	beforeJSON, err := json.MarshalIndent(rc.Change.Before, "", "  ")
+	beforeJSON, err := json.MarshalIndent(before, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal Before: %v", err)
 	}
-	afterJSON, err := json.MarshalIndent(rc.Change.After, "", "  ")
+	afterJSON, err := json.MarshalIndent(after, "", "  ")
 	if err != nil {
 		return "", fmt.Errorf("failed to marshal After: %v", err)
 	}

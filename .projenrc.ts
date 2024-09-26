@@ -4,8 +4,14 @@ import {
   LambdaFunctionUrlConfigStructBuilder,
   LambdaPermissionConfigStructBuilder,
   LambdaFunctionVpcConfigStructBuilder,
+  lambdaFunctionEventInvokeConfigStructBuilder,
+  LambdaEventSourceMappingConfigStructBuilder,
   S3BucketWebsiteConfigurationConfigStructBuilder,
   S3BucketCorsConfigurationConfigStructBuilder,
+  S3BucketLifecycleConfigurationRuleStructBuilder,
+  SqsQueueConfigStructBuilder,
+  CloudwatchEventRuleConfigStructBuilder,
+  CloudwatchEventTargetConfigStructBuilder,
 } from "./projenrc";
 
 // set strict node version
@@ -35,12 +41,14 @@ const project = new cdk.JsiiProject({
   // cdktf construct lib config
   peerDeps: [
     "cdktf@^0.20.8",
-    "@cdktf/provider-aws@^19.28.0",
+    "@cdktf/provider-aws@^19.34.0",
+    "@cdktf/provider-time@^10.2.1",
     "constructs@^10.3.0",
   ],
   devDeps: [
     "cdktf@^0.20.8",
-    "@cdktf/provider-aws@^19.28.0",
+    "@cdktf/provider-aws@^19.34.0",
+    "@cdktf/provider-time@^10.2.1",
     "constructs@^10.3.0",
     "@jsii/spec@^1.102.0",
     "@mrgrain/jsii-struct-builder",
@@ -51,23 +59,32 @@ const project = new cdk.JsiiProject({
 
   workflowNodeVersion: nodeVersion,
   workflowBootstrapSteps: [
+    // // use individual setup actions for tool specific caching
+    // {
+    //   uses: "jdx/mise-action@v2",
+    //   with: {
+    //     version: "2024.9.9",
+    //     cache: true,
+    //     install_args: ["bun", "node", "go", "opentofu"].join(" "),
+    //   },
+    // },
     {
       uses: "actions/setup-go@v5",
       with: {
-        "go-version": "^1.22.2",
+        "go-version": "^1.23.0",
       },
     },
     {
       uses: "oven-sh/setup-bun@v1",
       with: {
-        "bun-version": "1.1.10",
+        "bun-version": "1.1.26",
       },
     },
     {
-      uses: "hashicorp/setup-terraform@v3",
+      uses: "opentofu/setup-opentofu@v1",
       with: {
         terraform_wrapper: false,
-        terraform_version: "1.9.4",
+        tofu_version: "1.8.2",
       },
     },
   ],
@@ -80,6 +97,9 @@ const project = new cdk.JsiiProject({
 
   licensed: true,
   license: "GPL-3.0-or-later",
+  pullRequestTemplateContents: [
+    "By submitting this pull request, I confirm that my contribution is made under the terms of the GPL-3.0-or-later license.",
+  ],
 
   // disable autoMerge for now
   autoMerge: false,
@@ -97,9 +117,10 @@ project.tryFindObjectFile("package.json")?.addOverride("jest.testMatch", [
 project.gitignore.exclude(".env");
 
 // exclude the integration tests from the npm package
-project.npmignore?.addPatterns("/integ/");
+project.addPackageIgnore("/integ/");
 project.tsconfigDev?.addInclude("integ/**/*.ts");
 
+project.package.addField("packageManager", "pnpm@9.9.0"); // silence COREPACK_ENABLE_AUTO_PIN warning
 project.package.addEngine("node", nodeVersion);
 new TextFile(project, ".nvmrc", {
   lines: [nodeVersion],
@@ -113,7 +134,13 @@ new AwsProviderStructBuilder(project);
 new LambdaPermissionConfigStructBuilder(project);
 new LambdaFunctionUrlConfigStructBuilder(project);
 new LambdaFunctionVpcConfigStructBuilder(project);
+new LambdaEventSourceMappingConfigStructBuilder(project);
+new lambdaFunctionEventInvokeConfigStructBuilder(project);
 new S3BucketWebsiteConfigurationConfigStructBuilder(project);
 new S3BucketCorsConfigurationConfigStructBuilder(project);
+new S3BucketLifecycleConfigurationRuleStructBuilder(project);
+new SqsQueueConfigStructBuilder(project);
+new CloudwatchEventRuleConfigStructBuilder(project);
+new CloudwatchEventTargetConfigStructBuilder(project);
 
 project.synth();

@@ -1,0 +1,47 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Queue Should synth and match SnapShot 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_sqs_queue": {
+      "Resource": {
+        "message_retention_seconds": 1209600,
+        "name_prefix": "123e4567-e89b-12d3-hello-world",
+        "visibility_timeout_seconds": 900
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
