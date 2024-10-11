@@ -305,7 +305,7 @@ func testJwtVerifyFunction(t *testing.T, functionOutputsName string, workingDir 
 	}{
 		{"Missing JWT", "", 401, false},
 		{"Invalid JWT", "invalid-jwt", 401, false},
-		{"Valid JWT", generateValidJWT(t), 200, true},
+		{"Valid JWT", generateValidJWT(t), 200, true}, // TODO: Flaky?
 		{"Expired JWT", generateExpiredJWT(t), 401, false},
 	}
 

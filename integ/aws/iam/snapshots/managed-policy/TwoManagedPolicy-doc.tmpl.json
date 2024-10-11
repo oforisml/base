@@ -1,0 +1,15 @@
+{
+  "Statement": [
+    {
+      "Action": "lambda:InvokeFunction",
+      "Effect": "Allow",
+      "Resource": "*"
+    },
+    {
+      "Action": "iam:*",
+      "Effect": "Allow",
+      "Resource": "regex::arn:aws:iam::{{ .AccountId }}:role/.*$"
+    }
+  ],
+  "Version": "2012-10-17"
+}

@@ -1,0 +1,4 @@
+[
+  "arn:aws:iam::aws:policy/SecurityAudit",
+  "arn:aws:iam::{{ .AccountId }}:policy/some/path/Default"
+]

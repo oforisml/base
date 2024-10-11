@@ -7,10 +7,22 @@
 
 Run terratest:
 
-```sh
-make public-website-bucket
-# or
-make cdn-website-bucket
+```console
+$ make
+
+Test Targets:
+  public-website-bucket      Test Public S3 Bucket with website configuration
+  cdn-website-bucket         Test CDN with s3 origin Bucket and custom domain
+
+Other Targets:
+  help                       Print out every target with a description
+  clean                      clean up temporary files (tf/*, apps/cdktf.out, /tmp/go-synth-*)
+
+Special pattern targets:
+  %-no-cleanup:              Skip cleanup step (i.e. foo-no-cleanup)
+  %-synth-only:              Skip deploy, validate, and cleanup steps (i.e. foo-synth-only)
+  %-validate-only:           Skip synth and cleanup steps (i.e. foo-validate-only)
+  %-cleanup-only:            Skip synth, deploy, and validate steps (i.e. foo-cleanup-only)
 ```
 
 Iterating tests, use the `SKIP_` variables for the stages defined:

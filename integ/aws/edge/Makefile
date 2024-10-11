@@ -1,17 +1,13 @@
-clean:
-	rm -rf tf/*
-	rm -rf apps/cdktf.out
-	rm -rf /tmp/go-synth-*
-.PHONY: clean
+include ../../common.mk
 
-url-rewrite-spa:
+url-rewrite-spa: ## Test Edge function for URL rewrite SPA
 	go test -v -timeout 30m ./... -run ^TestUrlRewriteSpa$
 .PHONY: url-rewrite-spa
 
-kvs-jwt-verify:
+kvs-jwt-verify: ## Test Edge function for KVS JWT verify
 	go test -v -timeout 30m ./... -run ^TestKvsJwtVerify$
 .PHONY: kvs-jwt-verify
 
-multi-zone-acm-pub-cert:
+multi-zone-acm-pub-cert: ## Test Multi Zone ACM Public Certificate
 	go test -v -timeout 30m ./... -run ^TestMultiZoneAcmPubCert$
 .PHONY: multi-zone-acm-pub-cert

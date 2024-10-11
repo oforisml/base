@@ -22,7 +22,8 @@ import {
   OriginAccessIdentity,
 } from ".";
 import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps, AwsSpec } from "..";
-import { Policy } from "../iam";
+// these are not exported due to iam-floyd not being JSII compatible
+import { FloydPolicy } from "../iam/floyd-policy";
 
 export interface CloudfrontAccessConfig {
   /**
@@ -222,6 +223,11 @@ export interface BucketOutputs {
 export interface IBucket extends IAwsBeacon {
   /** Strongly typed outputs */
   readonly bucketOutputs: BucketOutputs;
+
+  /**
+   * AWS Bucket name
+   */
+  readonly bucketName: string;
 
   /** Whether the bucket has versioning enabled */
   readonly versioned: boolean;
@@ -516,7 +522,7 @@ export class Bucket extends AwsBeaconBase implements IBucket {
     if (this.statements.length > 0) {
       new s3BucketPolicy.S3BucketPolicy(this, "Policy", {
         bucket: this.resource.bucket,
-        policy: Policy.document(...this.statements),
+        policy: FloydPolicy.document(...this.statements),
         dependsOn:
           bucketPolicyDependsOn.length > 0 ? bucketPolicyDependsOn : undefined,
       });

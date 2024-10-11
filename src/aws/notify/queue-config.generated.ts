@@ -26,16 +26,6 @@ export interface SqsQueueConfig {
    */
   readonly sqsManagedSseEnabled?: boolean | IResolvable;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#redrive_policy SqsQueue#redrive_policy}.
-   * @stability stable
-   */
-  readonly redrivePolicy?: string;
-  /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#redrive_allow_policy SqsQueue#redrive_allow_policy}.
-   * @stability stable
-   */
-  readonly redriveAllowPolicy?: string;
-  /**
    * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#receive_wait_time_seconds SqsQueue#receive_wait_time_seconds}.
    * @stability stable
    */
@@ -66,30 +56,10 @@ export interface SqsQueueConfig {
    */
   readonly kmsDataKeyReusePeriodSeconds?: number;
   /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#fifo_throughput_limit SqsQueue#fifo_throughput_limit}.
-   * @stability stable
-   */
-  readonly fifoThroughputLimit?: string;
-  /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#fifo_queue SqsQueue#fifo_queue}.
-   * @stability stable
-   */
-  readonly fifoQueue?: boolean | IResolvable;
-  /**
    * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#delay_seconds SqsQueue#delay_seconds}.
    * @stability stable
    */
   readonly delaySeconds?: number;
-  /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#deduplication_scope SqsQueue#deduplication_scope}.
-   * @stability stable
-   */
-  readonly deduplicationScope?: string;
-  /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/sqs_queue#content_based_deduplication SqsQueue#content_based_deduplication}.
-   * @stability stable
-   */
-  readonly contentBasedDeduplication?: boolean | IResolvable;
   /**
    * @stability experimental
    */

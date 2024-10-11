@@ -1,0 +1,11 @@
+{
+  "Statement": [
+    { "Action": "sqs:SendMessage", "Effect": "Allow", "Resource": "*" },
+    {
+      "Action": "sts:AssumeRole",
+      "Effect": "Allow",
+      "Resource": "regex::arn:aws:iam::{{ .AccountId }}:role/.*$"
+    }
+  ],
+  "Version": "2012-10-17"
+}

@@ -19,3 +19,10 @@ go test -v -timeout 60m ./...
 > [!IMPORTANT]
 > Running all e2e tests will take significant amount of time and is not recommended, use individual make targets per namespace:
 > i.e. `cd staticsite; make public-website-bucket`
+
+## Make targets
+
+> [!IMPORTANT]
+> If you encounter any issues with the `awk` commands used, you might need to install GNU versions of these tools via Homebrew and ensure `gnubin` is first on `$PATH`.
+>
+> brew install awk

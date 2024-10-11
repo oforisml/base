@@ -12,6 +12,8 @@ import {
   SqsQueueConfigStructBuilder,
   CloudwatchEventRuleConfigStructBuilder,
   CloudwatchEventTargetConfigStructBuilder,
+  PolicyDocumentStatementStructBuilder,
+  PolicyDocumentConfigStructBuilder,
 } from "./projenrc";
 
 // set strict node version
@@ -23,6 +25,7 @@ const project = new cdk.JsiiProject({
   author: "Vincent De Smet",
   authorAddress: "vincent.drl@gmail.com",
   repositoryUrl: "https://github.com/envtio/base",
+  keywords: ["environment-toolkit", "beacon", "beacon-bundle"],
   defaultReleaseBranch: "main",
   typescriptVersion: "~5.4",
   jsiiVersion: "~5.4",
@@ -54,8 +57,12 @@ const project = new cdk.JsiiProject({
     "@mrgrain/jsii-struct-builder",
     "@types/mime-types",
   ],
-  // deps: ["iam-floyd@^0.658.0"], // iam-floyd is not JSII compatible and must be bundled.
-  bundledDeps: ["esbuild-wasm@^0.23.1", "iam-floyd@^0.658.0", "mime-types"],
+  bundledDeps: [
+    "esbuild-wasm@^0.23.1",
+    "iam-floyd@^0.658.0", // TODO: Remove iam-floyd
+    "mime-types",
+    "change-case@^4.1.1",
+  ],
 
   workflowNodeVersion: nodeVersion,
   workflowBootstrapSteps: [
@@ -83,7 +90,7 @@ const project = new cdk.JsiiProject({
     {
       uses: "opentofu/setup-opentofu@v1",
       with: {
-        terraform_wrapper: false,
+        tofu_wrapper: false,
         tofu_version: "1.8.2",
       },
     },
@@ -131,6 +138,8 @@ new TextFile(project, ".nvmrc", {
 project.npmrc?.addConfig("node-linker", "hoisted");
 
 new AwsProviderStructBuilder(project);
+new PolicyDocumentStatementStructBuilder(project);
+new PolicyDocumentConfigStructBuilder(project);
 new LambdaPermissionConfigStructBuilder(project);
 new LambdaFunctionUrlConfigStructBuilder(project);
 new LambdaFunctionVpcConfigStructBuilder(project);

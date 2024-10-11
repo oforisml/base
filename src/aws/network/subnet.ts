@@ -7,6 +7,7 @@ import {
   routeTable,
   routeTableAssociation,
 } from "@cdktf/provider-aws";
+import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "../";
 
@@ -37,7 +38,7 @@ export interface BaseSubnetProps extends AwsBeaconProps {
   readonly tags?: Record<string, string>;
 }
 
-export interface ISubnet extends IAwsBeacon {
+export interface ISubnet extends IAwsBeacon, ITerraformDependable {
   /**
    * The VPC ID of the subnet.
    */
@@ -83,6 +84,11 @@ export abstract class BaseSubnet extends AwsBeaconBase implements ISubnet {
     };
   }
 
+  public readonly resource: subnet.Subnet;
+  public get fqn(): string {
+    return this.resource.fqn;
+  }
+
   constructor(
     scope: Construct,
     id: string,
@@ -94,14 +100,14 @@ export abstract class BaseSubnet extends AwsBeaconBase implements ISubnet {
     this.cidr = props.ipv4CidrBlock;
     this._availabilityZone = props.availabilityZone;
     this.type = type;
-    const resource = new subnet.Subnet(this, "Resource", {
+    this.resource = new subnet.Subnet(this, "Resource", {
       vpcId: this.vpc.id,
       cidrBlock: this.cidr,
       availabilityZone: this._availabilityZone,
       mapPublicIpOnLaunch: this.type === SubnetType.PUBLIC,
       tags: props.tags,
     });
-    this._subnetId = resource.id;
+    this._subnetId = this.resource.id;
   }
 }
 

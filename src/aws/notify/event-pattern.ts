@@ -215,6 +215,7 @@ export class Match implements IResolvable {
     private readonly options: MatchOptions,
   ) {
     // TODO: Implement stack traces
+    // ref: https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/tokens/private/stack-trace.ts#L9
     // ref: https://github.com/aws/aws-cdk/blob/v2.143.0/packages/aws-cdk-lib/core/lib/stack-trace.ts#L22
     this.creationStack = ["stack traces disabled"];
   }

@@ -37,3 +37,29 @@ func (err CertificateNotIssuedError) Error() string {
 func NewCertificateNotIssuedError(certArn, currentStatus string) CertificateNotIssuedError {
 	return CertificateNotIssuedError{certArn, currentStatus}
 }
+
+// IamRoleNotFoundError is returned when the IAM role is not found.
+type IamRoleNotFoundError struct {
+	roleName string
+}
+
+func (err IamRoleNotFoundError) Error() string {
+	return fmt.Sprintf("IAM Role %s not found", err.roleName)
+}
+
+func NewIamRoleNotFoundError(roleName string) IamRoleNotFoundError {
+	return IamRoleNotFoundError{roleName}
+}
+
+// IamManagedPolicyNotFoundError is returned when the IAM managed policy is not found.
+type IamManagedPolicyNotFoundError struct {
+	policyArn string
+}
+
+func (err IamManagedPolicyNotFoundError) Error() string {
+	return fmt.Sprintf("IAM Managed Policy %s not found", err.policyArn)
+}
+
+func NewIamManagedPolicyNotFoundError(policyArn string) IamManagedPolicyNotFoundError {
+	return IamManagedPolicyNotFoundError{policyArn}
+}

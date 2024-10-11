@@ -3,7 +3,7 @@ import { AwsSpec, ArnFormat } from ".";
 import { BeaconBase, BeaconProps, IBeacon } from "../beacon-base";
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/resource.ts#L15
-const RESOURCE_SYMBOL = Symbol.for("@envtio/base/lib/aws/AwsBeacon");
+const RESOURCE_SYMBOL = Symbol.for("@envtio/base/lib/aws.AwsBeacon");
 
 // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/resource.ts#L21
 
@@ -93,7 +93,7 @@ export abstract class AwsBeaconBase extends BeaconBase implements IAwsBeacon {
   public readonly stack: AwsSpec;
   public readonly env: AwsEnvironment;
 
-  constructor(scope: Construct, id: string, props: AwsBeaconProps) {
+  constructor(scope: Construct, id: string, props: AwsBeaconProps = {}) {
     super(scope, id, props);
 
     if (

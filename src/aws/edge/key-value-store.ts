@@ -3,7 +3,7 @@ import {
   cloudfrontKeyValueStore,
   cloudfrontkeyvaluestoreKey,
 } from "@cdktf/provider-aws";
-// import { TerraformResourceLifecycle } from "cdktf";
+import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
 
@@ -175,7 +175,7 @@ export interface KeyValueStoreOutputs {
 /**
  * A CloudFront Key Value Store.
  */
-export interface IKeyValueStore extends IAwsBeacon {
+export interface IKeyValueStore extends IAwsBeacon, ITerraformDependable {
   /** Strongly typed outputs
    *
    * @attribute
@@ -227,6 +227,9 @@ export class KeyValueStore extends AwsBeaconBase implements IKeyValueStore {
   }
   public get outputs(): Record<string, any> {
     return this.keyValueStoreOutputs;
+  }
+  public get fqn(): string {
+    return this.resource.fqn;
   }
 
   readonly arn: string;

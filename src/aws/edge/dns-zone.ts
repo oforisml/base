@@ -1,5 +1,5 @@
 import { route53Zone, dataAwsRoute53Zone } from "@cdktf/provider-aws";
-import { Lazy, IResolvable } from "cdktf";
+import { Lazy, IResolvable, ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { AwsSpec, IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "../";
 import { INetwork } from "../network";
@@ -96,7 +96,7 @@ export interface DnsZoneOutputs {
 /**
  * Imported or created DNS zone attributes
  */
-export interface IDnsZone extends IAwsBeacon {
+export interface IDnsZone extends IAwsBeacon, ITerraformDependable {
   /** Strongly typed outputs */
   readonly dnsZoneOutputs: DnsZoneOutputs;
 
@@ -165,6 +165,9 @@ export class DnsZone extends AwsBeaconBase implements IDnsZone {
       public get outputs(): Record<string, any> {
         return this.dnsZoneOutputs;
       }
+      public get fqn(): string {
+        return this.datasource.fqn;
+      }
       public readonly zoneId = zoneId;
       public get zoneName(): string {
         return this.datasource.name;
@@ -206,6 +209,9 @@ export class DnsZone extends AwsBeaconBase implements IDnsZone {
   }
   public get outputs(): Record<string, any> {
     return this.dnsZoneOutputs;
+  }
+  public get fqn(): string {
+    return this.resource.fqn;
   }
 
   public readonly zoneId: string;

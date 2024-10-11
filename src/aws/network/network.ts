@@ -1,4 +1,4 @@
-import { IResolvable } from "cdktf";
+import { IResolvable, ITerraformDependable } from "cdktf";
 import { ISubnet } from "./subnet";
 import { ISubnetGroup } from "./subnet-group";
 import { IAwsBeacon } from "../";
@@ -37,7 +37,7 @@ export interface NetworkOutputs {
   readonly serviceDiscoveryNamespaceName: string;
 }
 
-export interface INetwork extends IAwsBeacon {
+export interface INetwork extends IAwsBeacon, ITerraformDependable {
   /** Strongly typed outputs */
   readonly networkOutputs: NetworkOutputs;
   /**

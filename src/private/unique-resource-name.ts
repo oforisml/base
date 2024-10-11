@@ -1,6 +1,9 @@
 import * as crypto from "crypto";
 import { cannotCalcIdForEmptySetOfComponents } from "cdktf/lib/errors";
-import { UniqueResourceNameOptions } from "../spec-base";
+import {
+  UniqueResourceNameOptions,
+  UniqueResourceNamePrefixOptions,
+} from "../spec-base";
 
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/core/lib/private/unique-resource-name.ts
 
@@ -23,6 +26,9 @@ const MAX_LEN = 256;
 
 const HASH_LEN = 8;
 
+/**
+ * Use path hash to generate a unique id from the set of components.
+ */
 export function makeUniqueResourceName(
   components: string[],
   options: UniqueResourceNameOptions,
@@ -72,6 +78,58 @@ export function makeUniqueResourceName(
   return human.length > maxhumanLength
     ? `${splitInMiddle(human, maxhumanLength)}${hash}`
     : `${human}${hash}`;
+}
+
+/**
+ * Does not use Path Hash and relies on provider generated suffix instead
+ */
+export function makeUniqueResourceNamePrefix(
+  components: string[],
+  options: UniqueResourceNamePrefixOptions,
+) {
+  const suffixLength = options.suffixLength ?? 26;
+  const maxLength = (options.maxLength ?? 256) - suffixLength;
+  const separator = options.separator ?? "";
+  const prefix = options.prefix ?? "";
+  components = components.filter((x) => x !== HIDDEN_ID);
+
+  if (components.length === 0) {
+    throw cannotCalcIdForEmptySetOfComponents();
+  }
+
+  // top-level resources will simply use the `name` as-is if the name is also short enough.
+  if (components.length === 1) {
+    const topLevelResource =
+      prefix +
+      removeNonAllowedSpecialCharacters(
+        components[0],
+        separator,
+        options.allowedSpecialCharacters,
+      );
+
+    if (topLevelResource.length <= maxLength) {
+      return topLevelResource;
+    }
+  }
+
+  const human =
+    prefix +
+    removeDupes(components)
+      .filter((pathElement) => pathElement !== HIDDEN_FROM_HUMAN_ID)
+      .map((pathElement) =>
+        removeNonAllowedSpecialCharacters(
+          pathElement,
+          separator,
+          options.allowedSpecialCharacters,
+        ),
+      )
+      .filter((pathElement) => pathElement)
+      .join(separator)
+      .concat(separator);
+
+  return human.length > maxLength
+    ? `${splitInMiddle(human, maxLength)}`
+    : `${human}`;
 }
 
 /**

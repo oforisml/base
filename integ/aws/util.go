@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"net/url"
 	"os"
 	"testing"
 	"text/template"
@@ -15,11 +16,16 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-type Variables struct {
-	AwsRegion       string // The AWS region to use for the test
-	EnvironmentName string // The environment name to use for the test
-	StackName       string // the name of the stack
+// URLDecode decodes a URL-encoded string.
+func URLDecode(encoded string) (string, error) {
+	decoded, err := url.QueryUnescape(encoded)
+	if err != nil {
+		return "", err
+	}
+	return decoded, nil
 }
+
+type Variables map[string]any
 
 // apply the variables to the test app
 func (p *Variables) Apply(contents string) (string, error) {

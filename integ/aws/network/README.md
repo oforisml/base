@@ -6,8 +6,21 @@
 
 Run terratest:
 
-```sh
-make simple-ipv4-vpc
+```console
+$ make
+
+Test Targets:
+  simple-ipv4-vpc            Test Simple IPv4 VPC network connectivity
+
+Other Targets:
+  help                       Print out every target with a description
+  clean                      clean up temporary files (tf/*, apps/cdktf.out, /tmp/go-synth-*)
+
+Special pattern targets:
+  %-no-cleanup:              Skip cleanup step (i.e. foo-no-cleanup)
+  %-synth-only:              Skip deploy, validate, and cleanup steps (i.e. foo-synth-only)
+  %-validate-only:           Skip synth and cleanup steps (i.e. foo-validate-only)
+  %-cleanup-only:            Skip synth, deploy, and validate steps (i.e. foo-cleanup-only)
 ```
 
 Iterating tests, use the `SKIP_` variables for the stages defined:
