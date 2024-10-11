@@ -100,9 +100,9 @@ export abstract class BeaconBase extends TerraformElement implements IBeacon {
   /**
    * Outputs to register with the parent Scope or undefined if there are no outputs
    */
-  public abstract get outputs(): Record<string, any>;
+  public abstract get outputs(): Record<string, any>; // TODO: should be allowed to be undefined?
 
-  constructor(scope: Construct, id: string, props: BeaconProps) {
+  constructor(scope: Construct, id: string, props: BeaconProps = {}) {
     super(scope, id);
     this.outputName = props.outputName || `${id}Outputs`;
     this.friendlyName = props.friendlyName || `${this.environmentName}-${id}`;

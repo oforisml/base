@@ -1,13 +1,9 @@
-clean:
-	rm -rf tf/*
-	rm -rf apps/cdktf.out
-	rm -rf /tmp/go-synth-*
-.PHONY: clean
+include ../../common.mk
 
-public-website-bucket:
+public-website-bucket: ## Test Public S3 Bucket with website configuration
 	go test -v -timeout 15m ./... -run ^TestPublicWebsiteBucket$
 .PHONY: public-website-bucket
 
-cdn-website-bucket:
+cdn-website-bucket: ## Test CDN with s3 origin Bucket and custom domain
 	go test -v -timeout 45m ./... -run ^TestCdnWebsiteBucket$
 .PHONY: cdn-website-bucket

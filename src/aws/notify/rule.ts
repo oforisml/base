@@ -6,9 +6,9 @@ import {
 import { Lazy } from "cdktf";
 import { Construct } from "constructs";
 // import { Statement } from "iam-floyd";
-import { RuleConfig, TargetConfig, Schedule, EventPattern } from "./";
-import { mergeEventPattern, renderEventPattern } from "./util";
 import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
+import { RuleConfig, TfTargetConfig, Schedule, EventPattern } from "./";
+import { mergeEventPattern, renderEventPattern } from "./util";
 // import { ServiceRole, IServiceRole } from "../iam";
 
 export interface RuleProps extends AwsBeaconProps, RuleConfig {
@@ -46,7 +46,7 @@ export interface RuleProps extends AwsBeaconProps, RuleConfig {
    *
    * @default - No targets.
    */
-  readonly targets?: Record<string, TargetConfig>;
+  readonly targets?: Record<string, TfTargetConfig>;
 
   /**
    * Additional restrictions for the event to route to the specified target
@@ -100,7 +100,7 @@ export class Rule extends AwsBeaconBase implements IRule {
   }
   private readonly scheduleExpression?: string;
 
-  private readonly targets: Record<string, TargetConfig> = {};
+  private readonly targets: Record<string, TfTargetConfig> = {};
   private readonly eventPattern: EventPattern = {};
 
   constructor(scope: Construct, name: string, props: RuleProps) {
@@ -217,7 +217,7 @@ export class Rule extends AwsBeaconBase implements IRule {
    * Gives an external source (like an EventBridge Rule, SNS, or S3) permission
    * to access the Lambda function.
    */
-  public addTarget(id: string, target: TargetConfig) {
+  public addTarget(id: string, target: TfTargetConfig) {
     this.targets[id] = target;
   }
 

@@ -5,6 +5,7 @@ import {
 } from "@cdktf/provider-aws";
 import {
   Token,
+  ITerraformDependable,
   // TerraformIterator,
   // TerraformLocal,
   // Fn
@@ -40,7 +41,7 @@ export interface CertificateOutputs {
 // through the stack state while the resource interface is used
 // while building composite beacons (L3) build out of base (L2) beacons.
 
-export interface ICertificate extends IAwsBeacon {
+export interface ICertificate extends IAwsBeacon, ITerraformDependable {
   /** Strongly typed outputs */
   readonly certificateOutputs: CertificateOutputs;
   /**
@@ -117,10 +118,7 @@ export interface CertificateValidationOption {
 /**
  * Amazon issued certificate
  */
-export class PublicCertificate
-  extends AwsBeaconBase
-  implements ICertificate, IAwsBeacon
-{
+export class PublicCertificate extends AwsBeaconBase implements ICertificate {
   // TODO: Add static fromLookup?
   resource: acmCertificate.AcmCertificate;
 
@@ -130,6 +128,9 @@ export class PublicCertificate
   }
   public get outputs(): Record<string, any> {
     return this.certificateOutputs;
+  }
+  public get fqn(): string {
+    return this.resource.fqn;
   }
 
   private readonly _domainName: string;

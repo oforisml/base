@@ -52,13 +52,13 @@ export class CloudwatchEventTargetConfigStructBuilder extends Component {
   constructor(project: typescript.TypeScriptProject) {
     super(project);
     const struct = new ProjenStruct(project, {
-      name: "TargetConfig",
+      name: "TfTargetConfig",
       description: "Provides an EventBridge Target resource.",
       filePath: path.join(
         project.srcdir,
         "aws",
         "notify",
-        "target-config.generated.ts",
+        "tf-target-config.generated.ts",
       ),
     });
 
@@ -68,6 +68,14 @@ export class CloudwatchEventTargetConfigStructBuilder extends Component {
           "@cdktf/provider-aws.cloudwatchEventTarget.CloudwatchEventTargetConfig",
         ),
       )
-      .omit("id", "provider", "rule");
+      .omit(
+        "id",
+        "provider",
+        "rule",
+        // State Machine Inputs, handled by RuleTargetInput class instead
+        "inputTransformer",
+        "inputPath",
+        "input",
+      );
   }
 }

@@ -54,6 +54,8 @@ tsconfig.json
 !/.nvmrc
 !/.projenrc.ts
 !/src/aws/provider-config.generated.ts
+!/src/aws/iam/policy-statement-props.generated.ts
+!/src/aws/iam/policy-document-config.generated.ts
 !/src/aws/compute/permission-config.generated.ts
 !/src/aws/compute/url-config.generated.ts
 !/src/aws/compute/function-vpc-config.generated.ts
@@ -65,4 +67,4 @@ tsconfig.json
 !/src/aws/storage/lifecycle-config.generated.ts
 !/src/aws/notify/queue-config.generated.ts
 !/src/aws/notify/rule-config.generated.ts
-!/src/aws/notify/target-config.generated.ts
+!/src/aws/notify/tf-target-config.generated.ts

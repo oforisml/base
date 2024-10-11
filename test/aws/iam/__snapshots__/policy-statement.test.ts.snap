@@ -1,0 +1,514 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`IAM policy statement from JSON parses a given Principal 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "actions": [
+              "service:action1",
+              "service:action2"
+            ],
+            "condition": [
+              {
+                "test": "equals",
+                "values": [
+                  "value"
+                ],
+                "variable": "key"
+              }
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "somearn"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON parses a given notPrincipal 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "actions": [
+              "service:action1",
+              "service:action2"
+            ],
+            "condition": [
+              {
+                "test": "equals",
+                "values": [
+                  "value"
+                ],
+                "variable": "key"
+              }
+            ],
+            "effect": "Allow",
+            "not_principals": [
+              {
+                "identifiers": [
+                  "*"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON parses with no principal 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "actions": [
+              "service:action1",
+              "service:action2"
+            ],
+            "condition": [
+              {
+                "test": "test",
+                "values": [
+                  "value"
+                ],
+                "variable": "key"
+              }
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON parses with notAction 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "effect": "Allow",
+            "not_actions": [
+              "service:action3"
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON parses with notActions 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "effect": "Allow",
+            "not_actions": [
+              "service:action3",
+              "service:action4"
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON parses with notResource 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "actions": [
+              "service:action3",
+              "service:action4"
+            ],
+            "effect": "Allow",
+            "not_resources": [
+              "resource1"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON parses with notResources 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "actions": [
+              "service:action3",
+              "service:action4"
+            ],
+            "effect": "Allow",
+            "not_resources": [
+              "resource1",
+              "resource2"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON should not convert \`Principal: *\` to \`Principal: { AWS: * }\` 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "actions": [
+              "service:action1"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "*"
+                ],
+                "type": "*"
+              }
+            ],
+            "resources": [
+              "*"
+            ]
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`IAM policy statement from JSON the kitchen sink 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_iam_policy_document": {
+      "doc_138423F6": {
+        "statement": [
+          {
+            "actions": [
+              "iam:ChangePassword"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ],
+            "sid": "FirstStatement"
+          },
+          {
+            "actions": [
+              "s3:ListAllMyBuckets"
+            ],
+            "effect": "Allow",
+            "resources": [
+              "*"
+            ],
+            "sid": "SecondStatement"
+          },
+          {
+            "actions": [
+              "s3:List*",
+              "s3:Get*"
+            ],
+            "condition": [
+              {
+                "test": "Bool",
+                "values": [
+                  "true"
+                ],
+                "variable": "aws:MultiFactorAuthPresent"
+              }
+            ],
+            "effect": "Allow",
+            "resources": [
+              "arn:aws:s3:::confidential-data",
+              "arn:aws:s3:::confidential-data/*"
+            ],
+            "sid": "ThirdStatement"
+          }
+        ]
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "terraform": {
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;

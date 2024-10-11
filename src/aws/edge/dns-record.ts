@@ -1,5 +1,5 @@
 import { route53Record } from "@cdktf/provider-aws";
-import { Token } from "cdktf";
+import { Token, ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 // import { GeoLocation } from "./geo-location";
 import { IDnsZone, IAliasRecordTarget } from ".";
@@ -140,7 +140,7 @@ export interface RecordSetOutputs {
 /**
  * A record set Attributes
  */
-export interface IRecordSet extends IAwsBeacon {
+export interface IRecordSet extends IAwsBeacon, ITerraformDependable {
   /** Strongly typed outputs */
   readonly recordSetOutputs: RecordSetOutputs;
 
@@ -167,6 +167,9 @@ export class RecordSet extends AwsBeaconBase implements IRecordSet {
   }
   public get outputs(): Record<string, any> {
     return this.recordSetOutputs;
+  }
+  public get fqn(): string {
+    return this.resource.fqdn;
   }
 
   public readonly domainName: string;

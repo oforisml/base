@@ -22,6 +22,18 @@ export class SqsQueueConfigStructBuilder extends Component {
 
     struct
       .mixin(Struct.fromFqn("@cdktf/provider-aws.sqsQueue.SqsQueueConfig"))
-      .omit("id", "provider", "name", "namePrefix");
+      .omit(
+        "id",
+        "provider",
+        "name",
+        "namePrefix",
+        // provide strongly typed properties for redrive and fifo
+        "redrivePolicy",
+        "redriveAllowPolicy",
+        "fifoQueue",
+        "fifoThroughputLimit",
+        "contentBasedDeduplication",
+        "deduplicationScope",
+      );
   }
 }

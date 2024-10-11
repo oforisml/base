@@ -8,7 +8,12 @@ import {
   lambdaFunctionEventInvokeConfig,
   lambdaEventSourceMapping,
 } from "@cdktf/provider-aws";
-import { IResolveContext, Lazy, IResolvable } from "cdktf";
+import {
+  IResolveContext,
+  Lazy,
+  IResolvable,
+  ITerraformDependable,
+} from "cdktf";
 import { Construct } from "constructs";
 import { Statement } from "iam-floyd";
 import {
@@ -27,7 +32,8 @@ import {
   RetentionDays,
 } from "..";
 import { Duration } from "../../";
-import { ServiceRole, IServiceRole } from "../iam";
+// These are not exported due to iam-floyd not being JSII compatible
+import { FloydServiceRole, IFloydServiceRole } from "../iam/floyd-service-role";
 import { IQueue } from "../notify";
 import { IBucket } from "../storage";
 
@@ -192,7 +198,7 @@ export interface FunctionOutputs {
   readonly defaultSecurityGroup?: string | IResolvable;
 }
 
-export interface IFunction extends IAwsBeacon {
+export interface IFunction extends IAwsBeacon, ITerraformDependable {
   /** Strongly typed outputs */
   readonly functionOutputs: FunctionOutputs;
   readonly functionName: string;
@@ -244,8 +250,9 @@ export interface IFunction extends IAwsBeacon {
    * Give Function permission to invoke another function
    *
    * (doesn't work for cross-account resources)
+   * @param fn Function to invoke or arn of the function
    */
-  functionInvokePermission(fn: IFunction): void;
+  functionInvokePermission(fn: IFunction | string): void;
 }
 
 /**
@@ -272,6 +279,9 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
   public get outputs(): Record<string, any> {
     return this.functionOutputs;
   }
+  public get fqn(): string {
+    return this.resource.fqn;
+  }
 
   private readonly _functionName: string;
   public get functionName(): string {
@@ -280,7 +290,7 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
 
   // TODO: Make role publicly accessible
   // requires JSII compatible iam-floyd or switch to https://www.awsiamactions.io/
-  private readonly role: IServiceRole;
+  private readonly role: IFloydServiceRole;
   public readonly logGroup: cloudwatchLogGroup.CloudwatchLogGroup;
   public readonly environment: { [key: string]: string };
 
@@ -331,7 +341,7 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
 
     this.logGroup = logGroup;
 
-    this.role = new ServiceRole(this, "ServiceRole", {
+    this.role = new FloydServiceRole(this, "ServiceRole", {
       service: "lambda.amazonaws.com",
       policyStatements: [
         new Statement.Logs()
@@ -539,14 +549,15 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
     this.role.addPolicyStatements(sqsPermissions);
   }
 
-  public functionInvokePermission(fn: IFunction) {
+  public functionInvokePermission(fn: IFunction | string) {
     // TODO: Handle Lambda version, cross account invokes?
+    const fnArn = typeof fn === "string" ? fn : fn.functionOutputs.arn;
     this.role.addPolicyStatements(
       new Statement.Lambda()
         .allow()
         .toInvokeAsync()
         .toInvokeFunction()
-        .on(fn.functionOutputs.arn),
+        .on(fnArn),
     );
   }
 

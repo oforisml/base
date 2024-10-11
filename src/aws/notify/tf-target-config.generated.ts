@@ -5,7 +5,7 @@ import type { FileProvisioner, IResolvable, ITerraformDependable, ITerraformIter
 /**
  * Provides an EventBridge Target resource.
  */
-export interface TargetConfig {
+export interface TfTargetConfig {
   /**
    * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/cloudwatch_event_target#target_id CloudwatchEventTarget#target_id}.
    * @stability stable
@@ -52,22 +52,6 @@ export interface TargetConfig {
    * @stability stable
    */
   readonly kinesisTarget?: cloudwatchEventTarget.CloudwatchEventTargetKinesisTarget;
-  /**
-   * input_transformer block.
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/cloudwatch_event_target#input_transformer CloudwatchEventTarget#input_transformer}
-   * @stability stable
-   */
-  readonly inputTransformer?: cloudwatchEventTarget.CloudwatchEventTargetInputTransformer;
-  /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/cloudwatch_event_target#input_path CloudwatchEventTarget#input_path}.
-   * @stability stable
-   */
-  readonly inputPath?: string;
-  /**
-   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/cloudwatch_event_target#input CloudwatchEventTarget#input}.
-   * @stability stable
-   */
-  readonly input?: string;
   /**
    * http_target block.
    * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/cloudwatch_event_target#http_target CloudwatchEventTarget#http_target}

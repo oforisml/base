@@ -18,9 +18,7 @@ import (
 // Get Certificate Status
 func GetAcmCertificateStatus(t testing.TestingT, awsRegion string, certArn string) string {
 	status, err := GetAcmCertificateStatusE(t, awsRegion, certArn)
-	if err != nil {
-		t.Fatal(err)
-	}
+	require.NoError(t, err)
 	return status
 }
 
@@ -63,7 +61,7 @@ func WaitForCertificateIssuedE(
 ) error {
 	msg, err := retry.DoWithRetryE(
 		t,
-		fmt.Sprintf("Waiting for Certificate %s to be ISSUED.", certArn),
+		fmt.Sprintf("Waiting for Certificate %s to be %s.", certArn, acm.CertificateStatusIssued),
 		maxRetries,
 		sleepBetweenRetries,
 		func() (string, error) {

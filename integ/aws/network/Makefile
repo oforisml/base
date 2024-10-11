@@ -1,9 +1,5 @@
-clean:
-	rm -rf tf/*
-	rm -rf apps/cdktf.out
-	rm -rf /tmp/go-synth-*
-.PHONY: clean
+include ../../common.mk
 
-simple-ipv4-vpc:
+simple-ipv4-vpc: ## Test Simple IPv4 VPC network connectivity
 	go test -v -timeout 60m ./... -run ^TestSimpleIPv4Vpc$
 .PHONY: simple-ipv4-vpc

@@ -6,6 +6,9 @@ on:
     branches:
       - main
   workflow_dispatch: {}
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
 jobs:
   release:
     runs-on: ubuntu-latest
@@ -33,7 +36,7 @@ jobs:
           bun-version: 1.1.26
       - uses: opentofu/setup-opentofu@v1
         with:
-          terraform_wrapper: false
+          tofu_wrapper: false
           tofu_version: 1.8.2
       - name: Setup pnpm
         uses: pnpm/action-setup@v3
@@ -64,7 +67,7 @@ jobs:
         continue-on-error: true
       - name: Upload artifact
         if: ${{ steps.git_remote.outputs.latest_commit == github.sha }}
-        uses: actions/upload-artifact@v4.3.6
+        uses: actions/upload-artifact@v4.4.0
         with:
           name: build-artifact
           path: dist
@@ -124,7 +127,7 @@ jobs:
           bun-version: 1.1.26
       - uses: opentofu/setup-opentofu@v1
         with:
-          terraform_wrapper: false
+          tofu_wrapper: false
           tofu_version: 1.8.2
       - name: Setup pnpm
         uses: pnpm/action-setup@v3

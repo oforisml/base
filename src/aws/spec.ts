@@ -3,6 +3,7 @@ import {
   dataAwsCallerIdentity,
   dataAwsPartition,
   dataAwsRegion,
+  dataAwsServicePrincipal,
   provider,
 } from "@cdktf/provider-aws";
 import {
@@ -12,11 +13,12 @@ import {
   Fn,
   ResourceTerraformIterator,
 } from "cdktf";
+import { snakeCase } from "change-case";
 import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat, AwsProviderConfig } from ".";
 import { SpecBaseProps, SpecBase, ISpec } from "../";
 
-const AWS_SPEC_SYMBOL = Symbol.for("@envtio/base/lib/aws/AwsSpec");
+const AWS_SPEC_SYMBOL = Symbol.for("@envtio/base/lib/aws.AwsSpec");
 
 export interface AwsSpecProps extends SpecBaseProps {
   /**
@@ -38,6 +40,14 @@ export interface IAwsSpec extends ISpec {
    * The AWS Partition for the beacon
    */
   readonly partition: string;
+
+  /**
+   * The service Principal Id for a specific service
+   *
+   * @param serviceName The service name to get the service principal ID for
+   * @param region The region to get the service principal ID for
+   */
+  servicePrincipalName(serviceName: string, region?: string): string;
   // /**
   //  * Produce the Token's value at resolution time
   //  */
@@ -50,6 +60,11 @@ interface AwsLookup {
   dataAwsCallerIdentity?: dataAwsCallerIdentity.DataAwsCallerIdentity;
   dataAwsPartition?: dataAwsPartition.DataAwsPartition;
   dataAwsAvailabilityZones?: dataAwsAvailabilityZones.DataAwsAvailabilityZones;
+  // AWS Service Principals by region and by service
+  dataAwsServicePrincipals: Record<
+    string,
+    Record<string, dataAwsServicePrincipal.DataAwsServicePrincipal>
+  >;
 }
 
 /**
@@ -84,6 +99,7 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
   }
 
   private readonly lookup: AwsLookup;
+  private regionalAwsProviders: { [region: string]: provider.AwsProvider } = {};
 
   constructor(scope: Construct, id: string, props: AwsSpecProps) {
     super(scope, id, props);
@@ -93,6 +109,7 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
         "defaultAwsProvider",
         props.providerConfig,
       ),
+      dataAwsServicePrincipals: {},
     };
     Object.defineProperty(this, AWS_SPEC_SYMBOL, { value: true });
   }
@@ -161,15 +178,30 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
     return this.lookup.dataAwsPartition;
   }
 
+  private getRegionalAwsProvider(region: string): provider.AwsProvider {
+    if (!this.regionalAwsProviders[region]) {
+      this.regionalAwsProviders[region] = new provider.AwsProvider(
+        this,
+        `aws_${toTerraformIdentifier(region)}`,
+        {
+          region,
+          alias: toTerraformIdentifier(region),
+        },
+      );
+    }
+    return this.regionalAwsProviders[region];
+  }
+
   /**
-   * Get the Region of the AWS Stack
-   *
-   * @param alias optional alias of the provider to get the account id for
+   * Get the Account of the AWS Stack
    */
   public get account(): string {
     return this.dataAwsCallerIdentity.accountId;
   }
 
+  /**
+   * Get the Partition of the AWS Stack
+   */
   public get partition() {
     return this.dataAwsPartition.partition;
   }
@@ -179,6 +211,65 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
    */
   public get urlSuffix() {
     return this.dataAwsPartition.dnsSuffix;
+  }
+
+  /**
+   * Return the service principal name based on the region it's used in.
+   *
+   * Some service principal names used to be different for different partitions,
+   * and some were not.
+   *
+   * These days all service principal names are standardized, and they are all
+   * of the form `<servicename>.amazonaws.com`.
+   *
+   * To avoid breaking changes, handling is provided for services added with the formats below,
+   * however, no additional handling will be added for new regions or partitions.
+   *   - s3
+   *   - s3.amazonaws.com
+   *   - s3.amazonaws.com.cn
+   *   - s3.c2s.ic.gov
+   *   - s3.sc2s.sgov.gov
+   *
+   * @param service The service name to get the service principal ID for
+   * @param region The region to get the service principal ID for
+   */
+  public servicePrincipalName(service: string, region?: string): string {
+    const DEFAULT_REGION_KEY = "default_region";
+    if (!region) {
+      region = DEFAULT_REGION_KEY;
+    }
+
+    if (Token.isUnresolved(region)) {
+      throw new Error(
+        "Cannot determine the service principal ID because the region is a token. " +
+          "You must specify the region explicitly.",
+      );
+    }
+
+    // if full service name is provided, extract just the service name
+    // for supported cases (as required by Terraform aws_service_principal Data Source)
+    const match = service.match(
+      /^([^.]+)(?:(?:\.amazonaws\.com(?:\.cn)?)|(?:\.c2s\.ic\.gov)|(?:\.sc2s\.sgov\.gov))?$/,
+    );
+    const serviceName = match ? match[1] : service;
+    if (!this.lookup.dataAwsServicePrincipals[region]) {
+      this.lookup.dataAwsServicePrincipals[region] = {};
+    }
+    if (!this.lookup.dataAwsServicePrincipals[region][serviceName]) {
+      this.lookup.dataAwsServicePrincipals[region][serviceName] =
+        new dataAwsServicePrincipal.DataAwsServicePrincipal(
+          this,
+          `aws_svcp_${toTerraformIdentifier(region)}_${serviceName}}`,
+          {
+            serviceName,
+            provider:
+              region === DEFAULT_REGION_KEY
+                ? undefined
+                : this.getRegionalAwsProvider(region),
+          },
+        );
+    }
+    return this.lookup.dataAwsServicePrincipals[region][serviceName].name;
   }
 
   /**
@@ -302,4 +393,8 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
   //   // ref: https://github.com/aws/aws-cdk/blob/v2.150.0/packages/aws-cdk-lib/core/lib/stack.ts#L572
   //   return resolve(this, obj);
   // }
+}
+
+function toTerraformIdentifier(identifier: string) {
+  return snakeCase(identifier).replace(/-/g, "_");
 }

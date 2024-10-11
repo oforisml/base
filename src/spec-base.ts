@@ -3,13 +3,39 @@ import {
   TerraformElement,
   HttpBackendConfig,
   HttpBackend,
+  // Token,
+  // Lazy,
+  // IResolveContext,
+  Tokenization,
+  // Fn,
+  DefaultTokenResolver, // https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/tokens/resolvable.ts#L176
+  StringConcat, // https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/tokens/resolvable.ts#L156
 } from "cdktf";
 import { Construct, IConstruct, Node } from "constructs";
-import { makeUniqueResourceName } from "./private";
+import {
+  makeUniqueResourceName,
+  makeUniqueResourceNamePrefix,
+} from "./private";
 
-const SPEC_SYMBOL = Symbol.for("@envtio/base/lib/Spec");
+const TOKEN_RESOLVER = new DefaultTokenResolver(new StringConcat());
+
+const SPEC_SYMBOL = Symbol.for("@envtio/base/lib.Spec");
 
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/core/lib/names.ts
+
+/**
+ * Options for creating a unique resource name_prefix.
+ */
+export interface UniqueResourceNamePrefixOptions
+  extends UniqueResourceNameOptions {
+  /**
+   * Length of the random generated suffix added by some Terraform providers.
+   *
+   * NOTE: https://github.com/hashicorp/terraform-provider-aws/issues/625
+   * @default - 26
+   */
+  readonly suffixLength?: number;
+}
 
 /**
  * Options for creating a unique resource name.
@@ -78,12 +104,23 @@ export interface SpecBaseProps {
   readonly gridBackendConfig?: HttpBackendConfig;
 }
 
-export interface ISpec {
+export interface ISpec extends IConstruct {
   /**
    * Environment Name passed in from the CLI
    */
   readonly environmentName: string;
   readonly gridUUID: string;
+  readonly gridBackend?: HttpBackend;
+  resolve(obj: any, preparing?: boolean): any;
+  uniqueResourceName(
+    tfElement: TerraformElement | Node,
+    options: UniqueResourceNameOptions,
+  ): string;
+  uniqueResourceNamePrefix(
+    tfElement: TerraformElement | Node,
+    options: UniqueResourceNamePrefixOptions,
+  ): string;
+  // toJsonString(obj: any, space?: number): string;
 }
 
 /**
@@ -125,6 +162,9 @@ export abstract class SpecBase extends TerraformStack implements ISpec {
    */
   public readonly environmentName: string;
 
+  /**
+   * The grid provided backend for state storage
+   */
   public readonly gridBackend?: HttpBackend;
 
   constructor(scope: Construct, id: string, props: SpecBaseProps) {
@@ -166,4 +206,52 @@ export abstract class SpecBase extends TerraformStack implements ISpec {
 
     return makeUniqueResourceName(componentsPath, options);
   }
+
+  /**
+   * Returns a Terraform-compatible unique identifier for a Terraform Element based
+   * on its path. This function finds the stackName of the parent stack (non-nested)
+   * to the construct, and the ids of the components in the construct path.
+   *
+   * The user can define allowed special characters, a separator between the elements,
+   * and the maximum length of the resource name. The name includes a human readable portion rendered
+   * from the path components, with or without user defined separators, and depends on the
+   * resource provider to generate the random suffix.
+   *
+   * If the resource name is longer than the maximum length - suffixLength, it is trimmed in the middle.
+   *
+   * @param tfElement The construct
+   * @param options Options for defining the unique resource name
+   * @returns a unique resource name based on the construct path
+   */
+  public uniqueResourceNamePrefix(
+    tfElement: TerraformElement | Node,
+    options: UniqueResourceNamePrefixOptions,
+  ): string {
+    const node = Construct.isConstruct(tfElement) ? tfElement.node : tfElement;
+    const stack = TerraformElement.isTerraformElement(tfElement)
+      ? tfElement.cdktfStack
+      : this;
+    const specIndex = node.scopes.indexOf(stack);
+    const componentsPath = node.scopes
+      .slice(specIndex)
+      .map((component) => component.node.id);
+
+    return makeUniqueResourceNamePrefix(componentsPath, options);
+  }
+
+  /** Resolve IResolvable in scope of this AwsSpec */
+  public resolve(obj: any, preparing = false): any {
+    return Tokenization.resolve(obj, {
+      scope: this,
+      preparing,
+      resolver: TOKEN_RESOLVER,
+    });
+  }
+
+  // /**
+  //  * Convert an object, potentially containing tokens, to a JSON string
+  //  */
+  // public toJsonString(obj: any, space?: number): string {
+  //   return toJSON(obj, space).toString();
+  // }
 }

@@ -5,21 +5,26 @@ import {
   iamRole,
   iamRolePolicyAttachment,
 } from "@cdktf/provider-aws";
-import { Lazy, IResolveContext } from "cdktf";
+import { Lazy, IResolveContext, ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { Statement } from "iam-floyd";
-import { IManagedPolicy } from "./managed-policy";
-import { Policy } from "./policy";
 import { AwsBeaconBase, AwsBeaconProps } from "..";
+import { FloydPolicy } from "./floyd-policy";
+import { IManagedPolicy } from "./managed-policy";
 
-export interface IServiceRole {
+/**
+ * A service role that can be assumed by an AWS service
+ *
+ * @deprecated - Use `IRole` from `iam` instead
+ */
+export interface IFloydServiceRole extends ITerraformDependable {
   readonly name: string;
   readonly arn: string;
   addPolicyStatements(...statements: Statement.All[]): void;
   addManagedPolicies(...policy: IManagedPolicy[]): void;
 }
 
-export interface ServiceRoleProps extends AwsBeaconProps {
+export interface FloydServiceRoleProps extends AwsBeaconProps {
   readonly service: string | string[];
   readonly policyStatements?: Statement.All[];
   /**
@@ -44,10 +49,15 @@ export interface ServiceRoleProps extends AwsBeaconProps {
 
 /**
  * A service role that can be assumed by an AWS service
+ *
+ * @deprecated - Use `IRole` from `iam` instead
  */
-export class ServiceRole extends AwsBeaconBase implements IServiceRole {
-  public static fromLookup(scope: Construct, name: string): IServiceRole {
-    class ServiceRoleLookup extends AwsBeaconBase implements IServiceRole {
+export class FloydServiceRole
+  extends AwsBeaconBase
+  implements IFloydServiceRole
+{
+  public static fromLookup(scope: Construct, name: string): IFloydServiceRole {
+    class ServiceRoleLookup extends AwsBeaconBase implements IFloydServiceRole {
       private readonly _resource: dataAwsIamRole.DataAwsIamRole;
       constructor() {
         super(scope, name, {});
@@ -66,6 +76,9 @@ export class ServiceRole extends AwsBeaconBase implements IServiceRole {
           name: this.name,
           arn: this.arn,
         };
+      }
+      public get fqn() {
+        return this._resource.fqn;
       }
       public addPolicyStatements(..._statements: Statement.All[]) {
         throw new Error("Imported ServiceRoles are immutable.");
@@ -89,11 +102,18 @@ export class ServiceRole extends AwsBeaconBase implements IServiceRole {
       arn: this.arn,
     };
   }
+  public get fqn() {
+    return this._resource.fqn;
+  }
   private readonly tags?: { [key: string]: string };
   private readonly policyStatements: Statement.All[];
   private readonly managedPolicies: IManagedPolicy[];
 
-  public constructor(scope: Construct, id: string, props: ServiceRoleProps) {
+  public constructor(
+    scope: Construct,
+    id: string,
+    props: FloydServiceRoleProps,
+  ) {
     super(scope, id, props);
     const { service } = props;
     const statement = new Statement.Sts()
@@ -109,7 +129,7 @@ export class ServiceRole extends AwsBeaconBase implements IServiceRole {
     this._resource = new iamRole.IamRole(this, "Resource", {
       namePrefix: this.gridUUID,
       path: props.path,
-      assumeRolePolicy: Policy.document(statement),
+      assumeRolePolicy: FloydPolicy.document(statement),
       tags: props.tags,
       lifecycle: {
         createBeforeDestroy: true,
@@ -156,7 +176,7 @@ export class ServiceRole extends AwsBeaconBase implements IServiceRole {
         path: "/",
         policy: Lazy.stringValue({
           produce: (_context: IResolveContext) => {
-            return Policy.document(...this.policyStatements);
+            return FloydPolicy.document(...this.policyStatements);
           },
         }),
         tags: this.tags,
@@ -176,8 +196,10 @@ export class ServiceRole extends AwsBeaconBase implements IServiceRole {
     }
 
     if (this.managedPolicies.length > 0) {
-      for (const policy of this.managedPolicies) {
-        const id = `MgmtPolicyAttachment-${policy.id}`;
+      for (let i = 0; i < this.managedPolicies.length; i++) {
+        // policy of this.managedPolicies
+        const id = `MgmtPolicyAttachment${i}`;
+        const policy = this.managedPolicies[i];
         if (this.node.tryFindChild(id)) continue; // ignore if already attached
         new iamRolePolicyAttachment.IamRolePolicyAttachment(this, id, {
           policyArn: policy.managedPolicyArn,

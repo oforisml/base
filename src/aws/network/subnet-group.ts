@@ -3,9 +3,10 @@ import {
   elasticacheSubnetGroup,
   // docdbSubnetGroup, // not needed, rds and docdb share subnet groups
 } from "@cdktf/provider-aws";
+import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
-import { ISubnet } from "./subnet";
 import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "..";
+import { ISubnet } from "./subnet";
 
 export enum SubnetGroupType {
   /**
@@ -23,7 +24,7 @@ export interface SubnetGroupProps extends AwsBeaconProps {
   readonly tags?: Record<string, string>;
 }
 
-export interface ISubnetGroup extends IAwsBeacon {
+export interface ISubnetGroup extends IAwsBeacon, ITerraformDependable {
   readonly type: SubnetGroupType;
   readonly arn: string;
   readonly subnets: ISubnet[];
@@ -48,6 +49,7 @@ export abstract class BaseSubnetGroup
       subnets: this.subnets.map((subnet) => subnet.outputs),
     };
   }
+
   constructor(
     scope: Construct,
     id: string,
@@ -62,13 +64,16 @@ export abstract class BaseSubnetGroup
 }
 
 export class DbSubnetGroup extends BaseSubnetGroup {
-  private _resource: dbSubnetGroup.DbSubnetGroup;
+  public readonly resource: dbSubnetGroup.DbSubnetGroup;
   public get arn(): string {
-    return this._resource.arn;
+    return this.resource.arn;
+  }
+  public get fqn(): string {
+    return this.resource.fqn;
   }
   constructor(scope: Construct, id: string, props: SubnetGroupProps) {
     super(scope, id, SubnetGroupType.DB, props);
-    this._resource = new dbSubnetGroup.DbSubnetGroup(this, "Resource", {
+    this.resource = new dbSubnetGroup.DbSubnetGroup(this, "Resource", {
       name: this.gridUUID,
       subnetIds: this.subnets.map((subnet) => subnet.subnetId),
       tags: this.tags,
@@ -77,13 +82,16 @@ export class DbSubnetGroup extends BaseSubnetGroup {
 }
 
 export class ElastiCacheSubnetGroup extends BaseSubnetGroup {
-  private _resource: elasticacheSubnetGroup.ElasticacheSubnetGroup;
+  public readonly resource: elasticacheSubnetGroup.ElasticacheSubnetGroup;
   public get arn(): string {
-    return this._resource.arn;
+    return this.resource.arn;
+  }
+  public get fqn(): string {
+    return this.resource.fqn;
   }
   constructor(scope: Construct, id: string, props: SubnetGroupProps) {
     super(scope, id, SubnetGroupType.ELASTICACHE, props);
-    this._resource = new elasticacheSubnetGroup.ElasticacheSubnetGroup(
+    this.resource = new elasticacheSubnetGroup.ElasticacheSubnetGroup(
       this,
       "Resource",
       {

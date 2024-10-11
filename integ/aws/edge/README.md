@@ -1,15 +1,27 @@
 # Edge e2e tests
 
-
 > [!IMPORTANT]
 > Terratest uses compiled package from `lib` directory, run `pnpm compile` after making changes!
 
 Run terratest:
 
-```sh
-make url-rewrite-spa
-make kvs-jwt-verify
-make multi-zone-acm-pub-cert
+```console
+$ make
+
+Test Targets:
+  url-rewrite-spa            Test Edge function for URL rewrite SPA
+  kvs-jwt-verify             Test Edge function for KVS JWT verify
+  multi-zone-acm-pub-cert    Test Multi Zone ACM Public Certificate
+
+Other Targets:
+  help                       Print out every target with a description
+  clean                      clean up temporary files (tf/*, apps/cdktf.out, /tmp/go-synth-*)
+
+Special pattern targets:
+  %-no-cleanup:              Skip cleanup step (i.e. foo-no-cleanup)
+  %-synth-only:              Skip deploy, validate, and cleanup steps (i.e. foo-synth-only)
+  %-validate-only:           Skip synth and cleanup steps (i.e. foo-validate-only)
+  %-cleanup-only:            Skip synth, deploy, and validate steps (i.e. foo-cleanup-only)
 ```
 
 Iterating tests, use the `SKIP_` variables for the stages defined:
@@ -18,9 +30,6 @@ Iterating tests, use the `SKIP_` variables for the stages defined:
 - SKIP_deploy_terraform=true to skip terraform init and apply
 - SKIP_validate=true to skip terratest validation stage
 - SKIP_cleanup_terraform=true to skip terraform destroy
-
-> [!WARNING]
-> AWS Lambda VPC network optimizations cause destroy actions on the VPC to take up to 45 min (actual 20min on average).
 
 For example, to synth app and deploy it, but keep everything running for troubleshooting (skip cleanup):
 
