@@ -1000,11 +1000,12 @@ describe("IAM policy document", () => {
   });
 
   describe("duplicate statements", () => {
-    // TODO: Fix merge Statements
-    test.skip("without tokens", () => {
+    test("without tokens", () => {
       // GIVEN
       const spec = getAwsSpec();
-      const p = new PolicyDocument(spec, "doc");
+      const p = new PolicyDocument(spec, "doc", {
+        minimize: true,
+      });
 
       const statement = new PolicyStatement();
       statement.addResources("resource1", "resource2");
@@ -1029,14 +1030,18 @@ describe("IAM policy document", () => {
       p.addStatements(statement);
 
       // THEN
-      expect(spec.resolve(p.toDocumentJson()).Statement).toHaveLength(1);
+      const stmtJson = spec.resolve(p.toDocumentJson()).Statement;
+      // expect(stmtJson).toMatchSnapshot();
+      expect(stmtJson).toHaveLength(1);
     });
 
     // TODO: Fix merge Statements
-    test.skip("with tokens", () => {
+    test("with tokens", () => {
       // GIVEN
       const spec = getAwsSpec();
-      const p = new PolicyDocument(spec, "doc");
+      const p = new PolicyDocument(spec, "doc", {
+        minimize: true,
+      });
 
       const statement1 = new PolicyStatement();
       statement1.addResources(Lazy.stringValue({ produce: () => "resource" }));
@@ -1055,7 +1060,27 @@ describe("IAM policy document", () => {
       p.addStatements(statement2);
 
       // THEN
-      expect(spec.resolve(p.toDocumentJson()).Statement).toHaveLength(1);
+      // Do prepare run to resolve all Terraform resources
+      spec.prepareStack();
+      const synthesized = Testing.synth(spec);
+      // expect(synthesized).toMatchSnapshot();
+      const template = JSON.parse(synthesized);
+      expect(template).toMatchObject({
+        data: {
+          aws_iam_policy_document: {
+            doc_138423F6: {
+              statement: [
+                {
+                  actions: ["service:action"],
+                  effect: "Allow",
+                  resources: ["resource"],
+                },
+              ],
+            },
+          },
+        },
+      });
+      // expect(stmtJson).toHaveLength(1);
     });
   });
 

@@ -4,7 +4,7 @@ import {
   dataAwsCloudfrontOriginRequestPolicy,
   dataAwsCloudfrontResponseHeadersPolicy,
 } from "@cdktf/provider-aws";
-import { IResolvable, Token, Lazy, ITerraformDependable } from "cdktf";
+import { IResolvable, Token, Lazy } from "cdktf";
 import { Construct } from "constructs";
 import { ICertificate, IOrigin, FunctionAssociation } from ".";
 import {
@@ -64,7 +64,7 @@ export interface DistributionOutputs {
 /**
  * Imported or created DNS zone attributes
  */
-export interface IDistribution extends IAwsBeacon, ITerraformDependable {
+export interface IDistribution extends IAwsBeacon {
   /** Strongly typed outputs
    *
    * @attribute
@@ -223,10 +223,6 @@ export class Distribution extends AwsBeaconBase implements IDistribution {
   public get outputs(): Record<string, any> {
     return this.distributionOutputs;
   }
-  public get fqn(): string {
-    return this.resource.fqn;
-  }
-
   private readonly _domainName: string;
   public get domainName(): string {
     return this._domainName;

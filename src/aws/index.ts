@@ -2,7 +2,6 @@
 export * from "./arn";
 export * from "./beacon";
 export * from "./spec";
-export * from "./access-levels";
 export * from "./log-retention";
 
 // core JSII compatible generated interfaces

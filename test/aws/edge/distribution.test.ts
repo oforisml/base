@@ -27,17 +27,29 @@ describe("Distribution", () => {
     // THEN
     spec.prepareStack(); // may generate additional resources
     const result = Testing.synth(spec);
-    expect(result).toHaveResourceWithProperties(
+    expect(result).toMatchSnapshot();
+    expect(result).toHaveDataSourceWithProperties(
       {
-        tfResourceType: "aws_s3_bucket_policy",
+        tfResourceType: "aws_iam_policy_document",
       },
       {
-        policy: expect.stringMatching(
-          /"Action":"s3:GetObject","Resource":"\${aws_s3_bucket\..+\.arn}\/\*"/,
-        ),
+        statement: [
+          {
+            actions: ["s3:GetObject"],
+            effect: "Allow",
+            principals: [
+              {
+                identifiers: [
+                  "${aws_cloudfront_origin_access_identity.HelloWorld_OriginAccessIdentity_5B20D425.iam_arn}",
+                ],
+                type: "AWS",
+              },
+            ],
+            resources: ["${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*"],
+          },
+        ],
       },
     );
-    expect(result).toMatchSnapshot();
   });
   test("Should synth with websiteConfig and match SnapShot", () => {
     // GIVEN

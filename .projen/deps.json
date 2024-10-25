@@ -137,11 +137,6 @@
       "type": "bundled"
     },
     {
-      "name": "iam-floyd",
-      "version": "^0.658.0",
-      "type": "bundled"
-    },
-    {
       "name": "mime-types",
       "type": "bundled"
     },

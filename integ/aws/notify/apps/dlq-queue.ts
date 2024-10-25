@@ -1,4 +1,3 @@
-import * as path from "path";
 import { App, LocalBackend } from "cdktf";
 import { aws, Duration } from "../../../../src";
 
@@ -29,14 +28,14 @@ new LocalBackend(stack, {
 const messageRetentionSeconds = Duration.days(14).toSeconds();
 
 const dlq = new aws.notify.Queue(stack, "DLQ", {
-  nameSuffix: "dlq",
+  namePrefix: "dlq",
   messageRetentionSeconds,
   visibilityTimeoutSeconds,
   registerOutputs: true,
   outputName: "dlq_queue",
 });
 new aws.notify.Queue(stack, "Queue", {
-  nameSuffix: "source",
+  namePrefix: "source",
   deadLetterQueue: {
     maxReceiveCount,
     queue: dlq,

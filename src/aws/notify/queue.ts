@@ -1,27 +1,25 @@
 import { sqsQueue } from "@cdktf/provider-aws";
-import { Token, ITerraformDependable } from "cdktf";
+import { Token } from "cdktf";
 import { Construct } from "constructs";
-// import { Statement } from "iam-floyd";
 import { SqsQueueConfig, QueuePolicy } from ".";
 import { AwsBeaconBase, AwsBeaconProps } from "..";
-import {
-  IAwsBeaconWithPolicy,
-  PolicyStatement,
-  AddToResourcePolicyResult,
-} from "../iam";
+import * as iam from "../iam";
 
 export interface QueueProps extends AwsBeaconProps, SqsQueueConfig {
   /**
-   * Queue Name suffix to append to Grid UUID
+   * Queue Name prefix
    *
    * Queue names must be made up of only uppercase and lowercase ASCII letters,
    * numbers, underscores, and hyphens, and must be between 1 and 80 characters
    * long.
    *
+   * Terraform Prefixes must reserve 26 characters for the terraform generated suffix.
+   *
    * For a FIFO (first-in-first-out) queue, the name must end with the .fifo
-   * @default - No suffix
+   * @default - GridUUID + Stack Unique Name
    */
-  readonly nameSuffix?: string;
+  readonly namePrefix?: string;
+
   /**
    * Send messages to this queue if they were unsuccessfully dequeued a number of times.
    *
@@ -105,7 +103,7 @@ export interface QueueOutputs {
 /**
  * Imported or created Queue attributes
  */
-export interface IQueue extends IAwsBeaconWithPolicy, ITerraformDependable {
+export interface IQueue extends iam.IAwsBeaconWithPolicy {
   /** Strongly typed outputs */
   readonly queueOutputs: QueueOutputs;
   /**
@@ -127,24 +125,77 @@ export interface IQueue extends IAwsBeaconWithPolicy, ITerraformDependable {
    * If this queue is configured with a dead-letter queue, this is the dead-letter queue settings.
    */
   readonly deadLetterQueue?: DeadLetterQueue;
+
+  // // TODO: Re-Add KMS support
+  // /**
+  //  * Whether the contents of the queue are encrypted, and by what type of key.
+  //  */
+  // readonly encryptionType?: QueueEncryption;
+
+  /**
+   * Whether this queue is an Amazon SQS FIFO queue. If false, this is a standard queue.
+   */
+  readonly fifo: boolean;
+
+  /**
+   * Grant permissions to consume messages from a queue
+   *
+   * This will grant the following permissions:
+   *
+   *   - sqs:ChangeMessageVisibility
+   *   - sqs:DeleteMessage
+   *   - sqs:ReceiveMessage
+   *   - sqs:GetQueueAttributes
+   *   - sqs:GetQueueUrl
+   *
+   * @param grantee Principal to grant consume rights to
+   */
+  grantConsumeMessages(grantee: iam.IGrantable): iam.Grant;
+
+  /**
+   * Grant access to send messages to a queue to the given identity.
+   *
+   * This will grant the following permissions:
+   *
+   *  - sqs:SendMessage
+   *  - sqs:GetQueueAttributes
+   *  - sqs:GetQueueUrl
+   *
+   * @param grantee Principal to grant send rights to
+   */
+  grantSendMessages(grantee: iam.IGrantable): iam.Grant;
+
+  /**
+   * Grant an IAM principal permissions to purge all messages from the queue.
+   *
+   * This will grant the following permissions:
+   *
+   *  - sqs:PurgeQueue
+   *  - sqs:GetQueueAttributes
+   *  - sqs:GetQueueUrl
+   *
+   * @param grantee Principal to grant send rights to
+   */
+  grantPurge(grantee: iam.IGrantable): iam.Grant;
+
+  /**
+   * Grant the actions defined in queueActions to the identity Principal given
+   * on this SQS queue resource.
+   *
+   * @param grantee Principal to grant right to
+   * @param queueActions The actions to grant
+   */
+  grant(grantee: iam.IGrantable, ...queueActions: string[]): iam.Grant;
 }
 
 /**
  * The `Queue` beacon provides an [AWS SQS Queue](https://aws.amazon.com/sqs/).
  *
  * ```ts
- * new notify.Queue(spec, "MyQueue", {
- *   path: path.join(__dirname, "dist"),
- * });
- * ```
- *
- * #### Public read access
- *
- * Enable `public` read access for all the files in the bucket. Useful for hosting public files.
- *
- * ```ts
- * new storage.Bucket("MyBucket", {
- *   public: true
+ * new notify.Queue(stack, "Queue", {
+ *   namePrefix: "queue.fifo",
+ *   messageRetentionSeconds: Duration.days(14).toSeconds(),
+ *   visibilityTimeoutSeconds: Duration.minutes(15).toSeconds(),
  * });
  * ```
  *
@@ -162,13 +213,8 @@ export class Queue extends AwsBeaconBase implements IQueue {
   public get outputs(): Record<string, any> {
     return this.queueOutputs;
   }
-  public get fqn(): string {
-    return this.resource.fqn;
-  }
-
   private policy?: QueuePolicy;
 
-  private readonly _queueNamePrefix: string;
   public get queueArn(): string {
     return this.resource.arn;
   }
@@ -185,7 +231,7 @@ export class Queue extends AwsBeaconBase implements IQueue {
    */
   public readonly fifo: boolean;
 
-  constructor(scope: Construct, name: string, props: QueueProps) {
+  constructor(scope: Construct, name: string, props: QueueProps = {}) {
     super(scope, name, props);
 
     // TODO: support ability to specify redriveAllowPolicy separately
@@ -213,29 +259,18 @@ export class Queue extends AwsBeaconBase implements IQueue {
     const fifoProps = this.determineFifoProps(props);
     this.fifo = fifoProps.fifoQueue || false;
 
-    this._queueNamePrefix = this.gridUUID;
-    if (props.nameSuffix) {
-      let suffix = props.nameSuffix;
-      // suffix is actualy infix
-      if (props.nameSuffix.endsWith(".fifo")) {
-        suffix = props.nameSuffix.slice(0, -5);
-      }
-      this._queueNamePrefix = `${this._queueNamePrefix}-${suffix}`;
-      // 54 = 80 - 26 (tf generated suffix)
-      if (
-        this._queueNamePrefix.length < 1 ||
-        this._queueNamePrefix.length > 54
-      ) {
-        throw new Error(
-          `Queue name prefix must be between 1 and 54 characters long. Received: ${this._queueNamePrefix}`,
-        );
-      }
-      if (!/^[\.\-_A-Za-z0-9]+$/.test(this._queueNamePrefix)) {
-        throw new Error(
-          `Queue name ${this._queueNamePrefix} can contain only letters, numbers, periods, hyphens, or underscores with no spaces.`,
-        );
+    let namePrefix = props.namePrefix;
+    if (namePrefix && !Token.isUnresolved(namePrefix)) {
+      if (namePrefix.endsWith(".fifo")) {
+        namePrefix = namePrefix.slice(0, -5);
       }
     }
+    // TODO: Should we always have the gridUUID as the prefix?
+    namePrefix = this.stack.uniqueResourceNamePrefix(this, {
+      prefix: namePrefix ?? this.gridUUID + "-",
+      allowedSpecialCharacters: "_-",
+      maxLength: 80,
+    });
 
     const redrivePolicy = props.deadLetterQueue
       ? {
@@ -267,7 +302,7 @@ export class Queue extends AwsBeaconBase implements IQueue {
       redriveAllowPolicy: redriveAllowPolicy
         ? JSON.stringify(redriveAllowPolicy)
         : undefined,
-      namePrefix: this._queueNamePrefix,
+      namePrefix,
     });
     this.deadLetterQueue = props.deadLetterQueue;
     this._outputs = {
@@ -284,8 +319,8 @@ export class Queue extends AwsBeaconBase implements IQueue {
    * will be automatically created upon the first call to `addToPolicy`.
    */
   public addToResourcePolicy(
-    statement: PolicyStatement,
-  ): AddToResourcePolicyResult {
+    statement: iam.PolicyStatement,
+  ): iam.AddToResourcePolicyResult {
     if (!this.policy) {
       this.policy = new QueuePolicy(this, "Policy", { queue: this });
     }
@@ -299,17 +334,126 @@ export class Queue extends AwsBeaconBase implements IQueue {
   }
 
   /**
+   * Grant permissions to consume messages from a queue
+   *
+   * This will grant the following permissions:
+   *
+   *   - sqs:ChangeMessageVisibility
+   *   - sqs:DeleteMessage
+   *   - sqs:ReceiveMessage
+   *   - sqs:GetQueueAttributes
+   *   - sqs:GetQueueUrl
+   *
+   * If encryption is used, permission to use the key to decrypt the contents of the queue will also be granted to the same principal.
+   *
+   * This will grant the following KMS permissions:
+   *
+   *   - kms:Decrypt
+   *
+   * @param grantee Principal to grant consume rights to
+   */
+  public grantConsumeMessages(grantee: iam.IGrantable) {
+    const ret = this.grant(
+      grantee,
+      "sqs:ReceiveMessage",
+      "sqs:ChangeMessageVisibility",
+      "sqs:GetQueueUrl",
+      "sqs:DeleteMessage",
+      "sqs:GetQueueAttributes",
+    );
+
+    // // TODO: Re-Add KMS support
+    // if (this.encryptionMasterKey) {
+    //   this.encryptionMasterKey.grantDecrypt(grantee);
+    // }
+
+    return ret;
+  }
+
+  /**
+   * Grant access to send messages to a queue to the given identity.
+   *
+   * This will grant the following permissions:
+   *
+   *  - sqs:SendMessage
+   *  - sqs:GetQueueAttributes
+   *  - sqs:GetQueueUrl
+   *
+   * If encryption is used, permission to use the key to encrypt/decrypt the contents of the queue will also be granted to the same principal.
+   *
+   * This will grant the following KMS permissions:
+   *
+   *  - kms:Decrypt
+   *  - kms:Encrypt
+   *  - kms:ReEncrypt*
+   *  - kms:GenerateDataKey*
+   *
+   * @param grantee Principal to grant send rights to
+   */
+  public grantSendMessages(grantee: iam.IGrantable) {
+    const ret = this.grant(
+      grantee,
+      "sqs:SendMessage",
+      "sqs:GetQueueAttributes",
+      "sqs:GetQueueUrl",
+    );
+
+    // // TODO: Re-Add KMS support
+    // if (this.encryptionMasterKey) {
+    //   // kms:Decrypt necessary to execute grantsendMessages to an SSE enabled SQS queue
+    //   this.encryptionMasterKey.grantEncryptDecrypt(grantee);
+    // }
+    return ret;
+  }
+
+  /**
+   * Grant an IAM principal permissions to purge all messages from the queue.
+   *
+   * This will grant the following permissions:
+   *
+   *  - sqs:PurgeQueue
+   *  - sqs:GetQueueAttributes
+   *  - sqs:GetQueueUrl
+   *
+   * @param grantee Principal to grant send rights to
+   */
+  public grantPurge(grantee: iam.IGrantable) {
+    return this.grant(
+      grantee,
+      "sqs:PurgeQueue",
+      "sqs:GetQueueAttributes",
+      "sqs:GetQueueUrl",
+    );
+  }
+
+  /**
+   * Grant the actions defined in queueActions to the identity Principal given
+   * on this SQS queue resource.
+   *
+   * @param grantee Principal to grant right to
+   * @param actions The actions to grant
+   */
+  public grant(grantee: iam.IGrantable, ...actions: string[]) {
+    return iam.Grant.addToPrincipalOrResource({
+      grantee,
+      actions,
+      resourceArns: [this.queueArn],
+      resource: this,
+    });
+  }
+
+  /**
    * Look at the props, see if the FIFO props agree, and return the correct subset of props
    */
   private determineFifoProps(props: QueueProps): FifoProps {
     // Check if any of the signals that we have say that this is a FIFO queue.
     let fifoQueue = props.fifo;
-    const nameSuffix = props.nameSuffix;
+    const prefix = props.namePrefix;
     if (
       typeof fifoQueue === "undefined" &&
-      nameSuffix &&
-      !Token.isUnresolved(nameSuffix) &&
-      nameSuffix.endsWith(".fifo")
+      prefix &&
+      !Token.isUnresolved(prefix) &&
+      prefix.endsWith(".fifo")
     ) {
       fifoQueue = true;
     }
@@ -324,11 +468,11 @@ export class Queue extends AwsBeaconBase implements IQueue {
     }
 
     // If we have a name, see that it agrees with the FIFO setting
-    if (typeof nameSuffix === "string") {
-      if (fifoQueue && !nameSuffix.endsWith(".fifo")) {
+    if (typeof prefix === "string") {
+      if (fifoQueue && !prefix.endsWith(".fifo")) {
         throw new Error("FIFO queue names must end in '.fifo'");
       }
-      if (!fifoQueue && nameSuffix.endsWith(".fifo")) {
+      if (!fifoQueue && prefix.endsWith(".fifo")) {
         throw new Error("Non-FIFO queue name may not end in '.fifo'");
       }
     }

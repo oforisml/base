@@ -2,6 +2,11 @@
   "name": "integ-aws-compute",
   "type": "module",
   "scripts": {
+    "destinations": "bun run ./destinations.ts",
+    "event-source-s3": "bun run ./event-source-s3.ts",
+    "event-source-sqs": "bun run ./event-source-sqs.ts",
+    "event-source-sqs-filtered": "bun run ./event-source-sqs-filtered.ts",
+    "lambda-chain": "bun run ./lambda-chain.ts",
     "nodejs-function-url": "bun run ./nodejs-function-url.ts"
   },
   "dependencies": {

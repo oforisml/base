@@ -14,6 +14,7 @@ require (
 	github.com/google/go-cmp v0.6.0
 	github.com/gruntwork-io/terratest v0.47.0
 	github.com/hashicorp/terraform-json v0.13.0
+	github.com/jmespath/go-jmespath v0.4.0
 	github.com/spf13/afero v1.11.0
 	github.com/stretchr/testify v1.8.4
 	go.uber.org/zap v1.27.0
@@ -69,7 +70,6 @@ require (
 	github.com/hashicorp/hcl/v2 v2.9.1 // indirect
 	github.com/imdario/mergo v0.3.11 // indirect
 	github.com/jinzhu/copier v0.0.0-20190924061706-b57f9002281a // indirect
-	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/josharian/intern v1.0.0 // indirect
 	github.com/json-iterator/go v1.1.12 // indirect
 	github.com/klauspost/compress v1.15.11 // indirect

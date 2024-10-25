@@ -42,20 +42,18 @@ if (zoneId) {
 }
 
 // add s3 bucket with origin access identity enabled
-const bucket = new aws.storage.Bucket(stack, "WebSite", {
-  namePrefix: "hello-cdn",
+const sourceBucket = new aws.storage.Bucket(stack, "Source", {
   sources: path.join(__dirname, "site"),
   cloudfrontAccess: {
     enabled: true,
   },
 });
-const origin = new aws.edge.S3Origin(bucket);
 // TODO: fix permanent diff on viewer certificate (min protocol TSLv1 and ssl_support_method SNI-only)
 const distribution = new aws.edge.Distribution(stack, "Cdn", {
   ...(certificate ? { aliases: [domainName], certificate } : {}),
   priceClass: aws.edge.PriceClass.PRICE_CLASS_100,
   defaultBehavior: {
-    origin,
+    origin: new aws.edge.S3Origin(sourceBucket),
     viewerProtocolPolicy: aws.edge.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
   },
   defaultRootObject: "index.html",

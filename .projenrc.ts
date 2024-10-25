@@ -1,17 +1,11 @@
 import { cdk, javascript, TextFile } from "projen";
 import {
   AwsProviderStructBuilder,
-  LambdaFunctionUrlConfigStructBuilder,
-  LambdaPermissionConfigStructBuilder,
   LambdaFunctionVpcConfigStructBuilder,
-  lambdaFunctionEventInvokeConfigStructBuilder,
-  LambdaEventSourceMappingConfigStructBuilder,
   S3BucketWebsiteConfigurationConfigStructBuilder,
   S3BucketCorsConfigurationConfigStructBuilder,
   S3BucketLifecycleConfigurationRuleStructBuilder,
   SqsQueueConfigStructBuilder,
-  CloudwatchEventRuleConfigStructBuilder,
-  CloudwatchEventTargetConfigStructBuilder,
   PolicyDocumentStatementStructBuilder,
   PolicyDocumentConfigStructBuilder,
 } from "./projenrc";
@@ -57,12 +51,7 @@ const project = new cdk.JsiiProject({
     "@mrgrain/jsii-struct-builder",
     "@types/mime-types",
   ],
-  bundledDeps: [
-    "esbuild-wasm@^0.23.1",
-    "iam-floyd@^0.658.0", // TODO: Remove iam-floyd
-    "mime-types",
-    "change-case@^4.1.1",
-  ],
+  bundledDeps: ["esbuild-wasm@^0.23.1", "mime-types", "change-case@^4.1.1"],
 
   workflowNodeVersion: nodeVersion,
   workflowBootstrapSteps: [
@@ -140,16 +129,10 @@ project.npmrc?.addConfig("node-linker", "hoisted");
 new AwsProviderStructBuilder(project);
 new PolicyDocumentStatementStructBuilder(project);
 new PolicyDocumentConfigStructBuilder(project);
-new LambdaPermissionConfigStructBuilder(project);
-new LambdaFunctionUrlConfigStructBuilder(project);
 new LambdaFunctionVpcConfigStructBuilder(project);
-new LambdaEventSourceMappingConfigStructBuilder(project);
-new lambdaFunctionEventInvokeConfigStructBuilder(project);
 new S3BucketWebsiteConfigurationConfigStructBuilder(project);
 new S3BucketCorsConfigurationConfigStructBuilder(project);
 new S3BucketLifecycleConfigurationRuleStructBuilder(project);
 new SqsQueueConfigStructBuilder(project);
-new CloudwatchEventRuleConfigStructBuilder(project);
-new CloudwatchEventTargetConfigStructBuilder(project);
 
 project.synth();

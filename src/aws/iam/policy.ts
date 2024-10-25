@@ -1,5 +1,4 @@
 import { iamRolePolicy } from "@cdktf/provider-aws";
-import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { IAwsBeacon, AwsBeaconBase, AwsBeaconProps } from "..";
 import { IPolicyDocument, PolicyDocument } from "./policy-document";
@@ -87,10 +86,7 @@ export interface PolicyProps extends AwsBeaconProps {
  * - [Iam Role Policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_role_policy)
  * - [Iam Group Policy](https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/iam_group_policy)
  */
-export class Policy
-  extends AwsBeaconBase
-  implements IPolicy, IGrantable, ITerraformDependable
-{
+export class Policy extends AwsBeaconBase implements IPolicy, IGrantable {
   /**
    * Import a policy in this app based on its name
    */
@@ -114,15 +110,6 @@ export class Policy
    * The policy document.
    */
   public readonly document: IPolicyDocument;
-  public get fqn() {
-    // TODO: this is wrong, should be the fqn of the generated iamRolePolicies (if any)
-    // or should just sleep 1 minute to wait for IAM eventual consistency?
-    // https://github.com/hashicorp/terraform-provider-aws/issues/29828#issuecomment-1693307500
-    // not sure if time.sleep is still necessary?
-    // https://github.com/pulumi/pulumi-aws/issues/2260#issuecomment-1977606509
-    return this.document.fqn;
-  }
-
   public readonly grantPrincipal: IPrincipal;
 
   public get outputs(): Record<string, any> {
@@ -255,6 +242,10 @@ export class Policy
     }
 
     // add iamRolePolicy resource for each referenced role
+    // NOTE: The TerraformDependendableAspect will propgate construct dependencies on this policy to its IamRolePolicy resources
+    // not sure if time.sleep is still necessary?
+    // https://github.com/pulumi/pulumi-aws/issues/2260#issuecomment-1977606509
+    // else need: https://github.com/hashicorp/terraform-provider-aws/issues/29828#issuecomment-1693307500
     for (let i = 0; i < this.roles.length; i++) {
       const id = `ResourceRoles${i}`;
       if (this.node.tryFindChild(id)) continue; // ignore if already generated

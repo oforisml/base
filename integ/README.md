@@ -13,7 +13,7 @@ Launch an Authenticated AWS Shell.
 Run all e2e tests:
 
 ```sh
-go test -v -timeout 60m ./...
+go test -v -count 1 -timeout 180m ./...
 ```
 
 > [!IMPORTANT]

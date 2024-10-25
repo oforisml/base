@@ -1,4 +1,3 @@
-import { ITerraformDependable } from "cdktf";
 import { Dependable, IConstruct, IDependable } from "constructs";
 import { IAwsBeacon } from "..";
 import { PolicyStatement, Conditions } from "./policy-statement";
@@ -420,7 +419,7 @@ export interface AddToResourcePolicyResult {
    * @default - If `statementAdded` is true, the resource object itself.
    * Otherwise, no dependable.
    */
-  readonly policyDependable?: ITerraformDependable;
+  readonly policyDependable?: IDependable;
 }
 
 /**

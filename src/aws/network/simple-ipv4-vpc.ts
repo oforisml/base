@@ -75,10 +75,6 @@ export class SimpleIPv4Vpc extends AwsBeaconBase implements INetwork {
   public get outputs(): Record<string, any> {
     return this._outputs;
   }
-  public get fqn(): string {
-    return this.vpc.fqn;
-  }
-
   private readonly ipv4CidrBlock: string;
   private readonly natGatewayOption: NatGatewayOption;
   private readonly natGateways: natGateway.NatGateway[] = [];

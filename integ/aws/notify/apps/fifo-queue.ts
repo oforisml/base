@@ -22,7 +22,7 @@ new LocalBackend(stack, {
 });
 
 new aws.notify.Queue(stack, "Queue", {
-  nameSuffix: "queue.fifo",
+  namePrefix: "queue.fifo",
   messageRetentionSeconds: Duration.days(14).toSeconds(),
   visibilityTimeoutSeconds: Duration.minutes(15).toSeconds(),
   outputName: "fifo_queue",

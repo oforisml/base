@@ -7,8 +7,8 @@ The purpose of this repository is to provide handcrafted, "AWS CDK"-like, DevX o
 
 This repository defines the core contracts for:
 
-- `Beacon`: The implementation of a higher level (L2+) User Pattern for underlaying (L1) provider resources.
-- `Spec`: The composition of one Primary and one or more Secondary Beacons. After the `et up` command is ran against a `spec` file it is directly mapped to a single `terraform state` in the E.T. Grid.
+- `Beacon`: The implementation of a higher level (L2+) User Pattern for underlaying (L1) provider resources. (i.e. `TerraformElement` in CDKTF)
+- `Spec`: The composition of Beacons. (i.e. `TerraformStack` in CDKTF). Running `et up` against a `spec` config file, instantiates it as a single `terraform state` in the E.T. Grid.
 
 This repository also provides cloud specific implementations for the above core entities:
 
@@ -33,7 +33,7 @@ new AwsSpec(scope, "MySpec", {
   providerConfig: {
     region: "us-east-1",
   },
-  gridUUID: "12345678-1234",             // immutable UUID for the lifetime of a resource
+  gridUUID: "12345678-1234",             // immutable UUID maintained by E.T. for the lifetime of the spec instance
   environmentName: "Gibraltar-Staging",  // mutable description for resource discovery
 });
 ```

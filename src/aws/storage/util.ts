@@ -11,14 +11,14 @@ export function parseBucketArn(
     return outputs.arn;
   }
 
-  if (outputs.bucketName) {
+  if (outputs.name) {
     return AwsSpec.ofAwsBeacon(construct).formatArn({
       // S3 Bucket names are globally unique in a partition,
       // and so their ARNs have empty region and account components
       region: "",
       account: "",
       service: "s3",
-      resource: outputs.bucketName,
+      resource: outputs.name,
     });
   }
 
@@ -32,8 +32,8 @@ export function parseBucketName(
   outputs: BucketOutputs,
 ): string | undefined {
   // if we have an explicit bucket name, use it.
-  if (outputs.bucketName) {
-    return outputs.bucketName;
+  if (outputs.name) {
+    return outputs.name;
   }
 
   // extract bucket name from bucket arn

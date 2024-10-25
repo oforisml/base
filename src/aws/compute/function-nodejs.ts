@@ -5,6 +5,7 @@ import { Construct } from "constructs";
 // This might be 10x slower than a native build - see https://esbuild.github.io/getting-started/#wasm
 import { buildSync } from "esbuild-wasm";
 import { LambdaFunction, FunctionProps } from "./function";
+import { IFunction } from "./function-base";
 
 export interface NodejsFunctionProps extends FunctionProps {
   /**
@@ -73,7 +74,7 @@ const bundle = (
  * @resource aws_lambda_function
  * @beacon-class compute.IFunction
  */
-export class NodejsFunction extends LambdaFunction {
+export class NodejsFunction extends LambdaFunction implements IFunction {
   public readonly asset: TerraformAsset;
   public readonly bundledPath: string;
 
@@ -92,6 +93,8 @@ export class NodejsFunction extends LambdaFunction {
       `${path.basename(config.path, ".ts")}.js`,
     );
 
+    // TODO: Implement Code && Runtime
+    // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-lambda/lib/code.ts
     this.asset = new TerraformAsset(this, "NodejsAsset", {
       path: distPath,
       type: AssetType.ARCHIVE,
@@ -100,6 +103,7 @@ export class NodejsFunction extends LambdaFunction {
     const fileName = path.basename(config.path, ".ts");
 
     this.resource.handler = `${fileName}.handler`;
+    // NOTE: for the underlaying resource, Exactly one of filename, image_uri, or s3_bucket must be specified
     this.resource.filename = this.asset.path;
     this.resource.sourceCodeHash = this.asset.assetHash;
     // https://docs.aws.amazon.com/lambda/latest/dg/lambda-runtimes.html#runtimes-supported

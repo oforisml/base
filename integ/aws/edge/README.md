@@ -3,6 +3,8 @@
 > [!IMPORTANT]
 > Terratest uses compiled package from `lib` directory, run `pnpm compile` after making changes!
 
+## Running Tests
+
 Run terratest:
 
 ```console
@@ -53,4 +55,15 @@ To synth app only
 
 ```sh
 SKIP_deploy_terraform=true SKIP_validate=true SKIP_cleanup_terraform=true make url-rewrite-spa
+```
+
+## Clean
+
+To clean up after running tests
+
+> [!WARNING]
+> This will remove TF State, preventing easy clean up of Cloud Resources
+
+```console
+make clean
 ```

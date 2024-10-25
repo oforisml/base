@@ -109,7 +109,7 @@ export class BucketSource extends AwsBeaconBase implements IBucketSource {
     this.objects.push(
       new s3Object.S3Object(this, `File${fileKey.replace(/\//g, "--")}`, {
         key: fileKey,
-        bucket: this._bucket.bucketOutputs.bucketName,
+        bucket: this._bucket.bucketOutputs.name,
         source: assetPath,
         sourceHash: Fn.filemd5(assetPath),
         contentType: mime.contentType(path.extname(assetPath)) || undefined,

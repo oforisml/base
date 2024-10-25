@@ -1,0 +1,121 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`notification can specify prefix and suffix filter rules 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_s3_bucket": {
+      "MyBucket_F68F3FF0": {
+        "bucket_prefix": "123e4567-e89b-12d3-mystackmybucket",
+        "tags": {
+          "Name": "Test-MyBucket",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_notification": {
+      "MyBucket_Notifications_46AC0CD2": {
+        "bucket": "\${aws_s3_bucket.MyBucket_F68F3FF0.bucket}",
+        "eventbridge": false,
+        "topic": [
+          {
+            "events": [
+              "s3:ObjectCreated:*"
+            ],
+            "filter_prefix": "images/",
+            "filter_suffix": ".png",
+            "topic_arn": "ARN"
+          }
+        ]
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`notification when notification is added a custom s3 bucket notification resource is provisioned 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_s3_bucket": {
+      "MyBucket_F68F3FF0": {
+        "bucket_prefix": "123e4567-e89b-12d3-mystackmybucket",
+        "tags": {
+          "Name": "Test-MyBucket",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    },
+    "aws_s3_bucket_notification": {
+      "MyBucket_Notifications_46AC0CD2": {
+        "bucket": "\${aws_s3_bucket.MyBucket_F68F3FF0.bucket}",
+        "eventbridge": false
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;

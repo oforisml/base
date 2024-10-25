@@ -71,13 +71,11 @@
   "dependencies": {
     "change-case": "^4.1.1",
     "esbuild-wasm": "^0.23.1",
-    "iam-floyd": "^0.658.0",
     "mime-types": "^2.1.35"
   },
   "bundledDependencies": [
     "change-case",
     "esbuild-wasm",
-    "iam-floyd",
     "mime-types"
   ],
   "pnpm": {},

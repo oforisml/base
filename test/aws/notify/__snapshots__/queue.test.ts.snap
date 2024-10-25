@@ -24,8 +24,57 @@ exports[`Queue Should synth and match SnapShot 1`] = `
   "resource": {
     "aws_sqs_queue": {
       "HelloWorld_7964D1E8": {
+        "name_prefix": "123e4567-e89b-12d3-TestSpecHelloWorld",
+        "tags": {
+          "Name": "Test-HelloWorld",
+          "et:grid:EnvironmentName": "Test",
+          "et:grid:UUID": "123e4567-e89b-12d3"
+        }
+      }
+    }
+  },
+  "terraform": {
+    "backend": {
+      "http": {
+        "address": "http://localhost:3000"
+      }
+    },
+    "required_providers": {
+      "aws": {
+        "source": "aws",
+        "version": "5.68.0"
+      }
+    }
+  }
+}"
+`;
+
+exports[`Queue Should synth and match SnapShot with prefix 1`] = `
+"{
+  "data": {
+    "aws_caller_identity": {
+      "CallerIdentity": {
+        "provider": "aws"
+      }
+    },
+    "aws_partition": {
+      "Partitition": {
+        "provider": "aws"
+      }
+    }
+  },
+  "provider": {
+    "aws": [
+      {
+        "region": "us-east-1"
+      }
+    ]
+  },
+  "resource": {
+    "aws_sqs_queue": {
+      "HelloWorld_7964D1E8": {
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-hello-world",
+        "name_prefix": "hello-worldTestSpecHelloWorld",
         "tags": {
           "Name": "Test-HelloWorld",
           "et:grid:EnvironmentName": "Test",
@@ -76,7 +125,7 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
     "aws_sqs_queue": {
       "DLQ_581697C4": {
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3",
+        "name_prefix": "123e4567-e89b-12d3-TestSpecDLQ",
         "tags": {
           "Name": "Test-DLQ",
           "et:grid:EnvironmentName": "Test",
@@ -86,7 +135,7 @@ exports[`Queue Should synth with DLQ and match SnapShot 1`] = `
       },
       "Queue_4A7E3555": {
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3",
+        "name_prefix": "123e4567-e89b-12d3-TestSpecQueue",
         "redrive_policy": "{\\"deadLetterTargetArn\\":\\"\${aws_sqs_queue.DLQ_581697C4.arn}\\",\\"maxReceiveCount\\":5}",
         "tags": {
           "Name": "Test-Queue",
@@ -140,7 +189,7 @@ exports[`Queue Should synth with contentBasedDeduplication and match SnapShot 1`
         "content_based_deduplication": true,
         "fifo_queue": true,
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3",
+        "name_prefix": "123e4567-e89b-12d3-TestSpecQueue",
         "tags": {
           "Name": "Test-Queue",
           "et:grid:EnvironmentName": "Test",
@@ -192,7 +241,7 @@ exports[`Queue Should synth with fifo suffix and match SnapShot 1`] = `
       "Queue_4A7E3555": {
         "fifo_queue": true,
         "message_retention_seconds": 1209600,
-        "name_prefix": "123e4567-e89b-12d3-queue",
+        "name_prefix": "queueTestSpecQueue",
         "tags": {
           "Name": "Test-Queue",
           "et:grid:EnvironmentName": "Test",

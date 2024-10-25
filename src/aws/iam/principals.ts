@@ -1,9 +1,5 @@
-import {
-  ITerraformDependable,
-  Token,
-  IResolvable,
-  IResolveContext,
-} from "cdktf";
+import { Token, IResolvable, IResolveContext } from "cdktf";
+import { IDependable } from "constructs";
 import {
   IPolicyDocument,
   PolicyStatement,
@@ -288,7 +284,7 @@ export interface AddToPrincipalPolicyResult {
    *
    * @default - Required if `statementAdded` is true.
    */
-  readonly policyDependable?: ITerraformDependable;
+  readonly policyDependable?: IDependable;
 }
 
 /**

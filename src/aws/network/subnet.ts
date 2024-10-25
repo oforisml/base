@@ -7,7 +7,6 @@ import {
   routeTable,
   routeTableAssociation,
 } from "@cdktf/provider-aws";
-import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "../";
 
@@ -38,7 +37,7 @@ export interface BaseSubnetProps extends AwsBeaconProps {
   readonly tags?: Record<string, string>;
 }
 
-export interface ISubnet extends IAwsBeacon, ITerraformDependable {
+export interface ISubnet extends IAwsBeacon {
   /**
    * The VPC ID of the subnet.
    */
@@ -85,10 +84,6 @@ export abstract class BaseSubnet extends AwsBeaconBase implements ISubnet {
   }
 
   public readonly resource: subnet.Subnet;
-  public get fqn(): string {
-    return this.resource.fqn;
-  }
-
   constructor(
     scope: Construct,
     id: string,

@@ -5,6 +5,7 @@ import {
 import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
+import { ArnPrincipal, IPrincipal, IGrantable } from "../iam";
 
 // TODO: migrate to OAC
 // https://github.com/aws/aws-cdk/pull/31254
@@ -21,7 +22,7 @@ export interface OriginAccessIdentityProps extends AwsBeaconProps {
 /**
  * Interface for CloudFront OriginAccessIdentity
  */
-export interface IOriginAccessIdentity extends IAwsBeacon {
+export interface IOriginAccessIdentity extends IAwsBeacon, IGrantable {
   /**
    * The Origin Access Identity Id (physical id)
    */
@@ -38,6 +39,9 @@ export interface IOriginAccessIdentity extends IAwsBeacon {
    * Example: `arn:aws:iam::cloudfront:user/CloudFront Origin Access Identity E2QWRUHAPOMQZL`.
    */
   readonly iamArn: string;
+  /**
+   * Derived principal value for bucket access
+   */
 }
 
 abstract class OriginAccessIdentityBase extends AwsBeaconBase {
@@ -57,9 +61,25 @@ abstract class OriginAccessIdentityBase extends AwsBeaconBase {
   public abstract readonly cloudFrontOriginAccessIdentityPath: string;
 
   /**
-   * Pre-generated ARN for use in S3 bucket policies.
+   * Derived principal value for bucket access
    */
+  public abstract readonly grantPrincipal: IPrincipal;
+
   public abstract readonly iamArn: string;
+  // /**
+  //  * The ARN to include in S3 bucket policy to allow CloudFront access
+  //  */
+  // protected arn(): string {
+  //   return AwsSpec.ofAwsBeacon(this).formatArn(
+  //     {
+  //       service: 'iam',
+  //       region: '', // global
+  //       account: 'cloudfront',
+  //       resource: 'user',
+  //       resourceName: `CloudFront Origin Access Identity ${this.originAccessIdentityId}`,
+  //     },
+  //   );
+  // }
 
   public get outputs(): Record<string, any> {
     return {
@@ -91,6 +111,7 @@ export class OriginAccessIdentity
       public readonly originAccessIdentityId = originAccessIdentityId;
       public readonly cloudFrontOriginAccessIdentityPath: string;
       public readonly iamArn: string;
+      public readonly grantPrincipal: IPrincipal;
       constructor(s: Construct, i: string) {
         super(s, i, {});
         this.resource =
@@ -104,6 +125,7 @@ export class OriginAccessIdentity
         this.cloudFrontOriginAccessIdentityPath =
           this.resource.cloudfrontAccessIdentityPath;
         this.iamArn = this.resource.iamArn;
+        this.grantPrincipal = new ArnPrincipal(this.iamArn);
       }
     }
 
@@ -132,6 +154,11 @@ export class OriginAccessIdentity
   public readonly iamArn: string;
 
   /**
+   * Derived principal value for bucket access
+   */
+  public readonly grantPrincipal: IPrincipal;
+
+  /**
    * CDKTF L1 resource
    */
   public readonly resource: cloudfrontOriginAccessIdentity.CloudfrontOriginAccessIdentity;
@@ -156,5 +183,6 @@ export class OriginAccessIdentity
     this.cloudFrontOriginAccessIdentityPath =
       this.resource.cloudfrontAccessIdentityPath;
     this.iamArn = this.resource.iamArn;
+    this.grantPrincipal = new ArnPrincipal(this.iamArn);
   }
 }
