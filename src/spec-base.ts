@@ -3,18 +3,18 @@ import {
   TerraformElement,
   HttpBackendConfig,
   HttpBackend,
-  // Token,
-  // Lazy,
-  // IResolveContext,
   Tokenization,
-  // Fn,
   DefaultTokenResolver, // https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/tokens/resolvable.ts#L176
   StringConcat, // https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/tokens/resolvable.ts#L156
+  Aspects,
+  IResolveContext,
+  Lazy,
 } from "cdktf";
 import { Construct, IConstruct, Node } from "constructs";
 import {
   makeUniqueResourceName,
   makeUniqueResourceNamePrefix,
+  TerraformDependencyAspect,
 } from "./private";
 
 const TOKEN_RESOLVER = new DefaultTokenResolver(new StringConcat());
@@ -68,6 +68,13 @@ export interface UniqueResourceNameOptions {
    * @default - none
    */
   readonly prefix?: string;
+
+  /**
+   * Whether to convert the resource name to lowercase.
+   *
+   * @default - false
+   */
+  readonly lowerCase?: boolean;
 }
 
 export interface SpecBaseProps {
@@ -153,6 +160,63 @@ export abstract class SpecBase extends TerraformStack implements ISpec {
   }
 
   /**
+   * Returns a unique identifier for a construct based on its path within
+   * a TerraformStack. see uniqueResourceName, but with no separator, maximum length 255 and allows
+   *  "_" and "-" on top of alphanumerical characters.
+   *
+   * @param construct The construct
+   * @returns a unique resource name based on the construct path
+   */
+  public static uniqueId(construct: IConstruct | Node) {
+    return SpecBase.uniqueResourceName(construct, {
+      maxLength: 255,
+      // avoid https://github.com/aws/aws-cdk/issues/6421
+      allowedSpecialCharacters: "_-",
+    });
+  }
+
+  /**
+   * Returns a unique identifier for a construct based
+   * on its path within a TerraformStack.
+   *
+   * Throws if no TerraformStack is found within it's construct path.
+   *
+   * This function finds the id of the parent stack (non-nested)
+   * to the construct, and the ids of the components in the construct path.
+   *
+   * The user can define allowed special characters, a separator between the elements,
+   * and the maximum length of the resource name. The name includes a human readable portion rendered
+   * from the path components, with or without user defined separators, and a hash suffix.
+   * If the resource name is longer than the maximum length, it is trimmed in the middle.
+   *
+   * @param construct The construct
+   * @param options Options for defining the unique resource name
+   * @returns a unique resource name based on the construct path
+   */
+  private static uniqueResourceName(
+    construct: IConstruct | Node,
+    options: UniqueResourceNameOptions,
+  ) {
+    const node = Construct.isConstruct(construct) ? construct.node : construct;
+    const stack = node.scopes
+      .reverse()
+      .find((component) => TerraformStack.isStack(component));
+
+    if (!stack) {
+      throw new Error(
+        "Unable to calculate a unique id without a stack in the construct path",
+      );
+    }
+
+    const specIndex = node.scopes.indexOf(stack);
+    const componentsPath = node.scopes
+      .slice(specIndex)
+      .map((component) => component.node.id);
+
+    return makeUniqueResourceName(componentsPath, options);
+  }
+
+  /**
    * Spec unique grid identifier
    */
   public readonly gridUUID: string;
@@ -175,6 +239,13 @@ export abstract class SpecBase extends TerraformStack implements ISpec {
     if (props.gridBackendConfig) {
       this.gridBackend = new HttpBackend(this, props.gridBackendConfig);
     }
+
+    // Map construct tree dependencies to ITerraformDependables
+    // ref: https://github.com/hashicorp/terraform-cdk/issues/2727#issuecomment-1473321075
+    Aspects.of(this).add(new TerraformDependencyAspect());
+    // Aspects are invoked in synth after stack has been prepared
+    // this should ensure any resources added during `prepareStack()` are included in the dependency tree
+    // ref: https://github.com/hashicorp/terraform-cdk/blob/v0.20.9/packages/cdktf/lib/synthesize/synthesizer.ts#L121
   }
 
   /**
@@ -248,10 +319,25 @@ export abstract class SpecBase extends TerraformStack implements ISpec {
     });
   }
 
-  // /**
-  //  * Convert an object, potentially containing tokens, to a JSON string
-  //  */
-  // public toJsonString(obj: any, space?: number): string {
-  //   return toJSON(obj, space).toString();
-  // }
+  /**
+   * Convert an object, potentially containing tokens, to a JSON string
+   */
+  public toJsonString(obj: any, space?: number): string {
+    return Lazy.stringValue({
+      produce: (ctx: IResolveContext) => {
+        // First resolve Token objects with string concat... then JSON.stringify the resulting object
+        //
+        // unlike cloudformation, Terraform does not need an intrinsic wrapper?
+        // https://github.com/aws/aws-cdk/blob/8dca5079e1893122057f9e2c54c0da0ba644926e/packages/%40aws-cdk/core/lib/private/cloudformation-lang.ts#L73
+        // intrinsic wrapper without cross stack ref
+        // https://github.com/aws/aws-cdk/blob/14e4bc91ed5f0f8cb7c8ac9ee8a6de4da54e6585/packages/%40aws-cdk/core/lib/private/cloudformation-lang.ts#L50
+        const resolved = Tokenization.resolve(obj, {
+          preparing: ctx.preparing,
+          scope: ctx.scope,
+          resolver: TOKEN_RESOLVER,
+        });
+        return JSON.stringify(resolved, undefined, space);
+      },
+    });
+  }
 }

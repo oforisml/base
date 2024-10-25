@@ -3,7 +3,6 @@ import {
   elasticacheSubnetGroup,
   // docdbSubnetGroup, // not needed, rds and docdb share subnet groups
 } from "@cdktf/provider-aws";
-import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { AwsBeaconBase, AwsBeaconProps, IAwsBeacon } from "..";
 import { ISubnet } from "./subnet";
@@ -24,7 +23,7 @@ export interface SubnetGroupProps extends AwsBeaconProps {
   readonly tags?: Record<string, string>;
 }
 
-export interface ISubnetGroup extends IAwsBeacon, ITerraformDependable {
+export interface ISubnetGroup extends IAwsBeacon {
   readonly type: SubnetGroupType;
   readonly arn: string;
   readonly subnets: ISubnet[];
@@ -68,9 +67,6 @@ export class DbSubnetGroup extends BaseSubnetGroup {
   public get arn(): string {
     return this.resource.arn;
   }
-  public get fqn(): string {
-    return this.resource.fqn;
-  }
   constructor(scope: Construct, id: string, props: SubnetGroupProps) {
     super(scope, id, SubnetGroupType.DB, props);
     this.resource = new dbSubnetGroup.DbSubnetGroup(this, "Resource", {
@@ -85,9 +81,6 @@ export class ElastiCacheSubnetGroup extends BaseSubnetGroup {
   public readonly resource: elasticacheSubnetGroup.ElasticacheSubnetGroup;
   public get arn(): string {
     return this.resource.arn;
-  }
-  public get fqn(): string {
-    return this.resource.fqn;
   }
   constructor(scope: Construct, id: string, props: SubnetGroupProps) {
     super(scope, id, SubnetGroupType.ELASTICACHE, props);

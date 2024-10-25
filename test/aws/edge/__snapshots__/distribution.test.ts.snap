@@ -107,7 +107,7 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
     },
     "aws_s3_bucket": {
       "Bucket0_C98EAF71": {
-        "bucket_prefix": "123e4567-e89b-12d3-bucket-0",
+        "bucket_prefix": "bucket-0-testspecbucket0",
         "tags": {
           "Name": "Test-Bucket0",
           "et:grid:EnvironmentName": "Test",
@@ -115,7 +115,7 @@ exports[`Distribution Should support multiple origins and cache behaviors 1`] = 
         }
       },
       "Bucket1_2520700A": {
-        "bucket_prefix": "123e4567-e89b-12d3-bucket-1",
+        "bucket_prefix": "bucket-1-testspecbucket1",
         "tags": {
           "Name": "Test-Bucket1",
           "et:grid:EnvironmentName": "Test",
@@ -165,6 +165,29 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
     "aws_cloudfront_cache_policy": {
       "HelloWorldDistribution_Managed-CachingOptimized_E039BAC9": {
         "name": "Managed-CachingOptimized"
+      }
+    },
+    "aws_iam_policy_document": {
+      "HelloWorld_Policy_Document_6894C6E0": {
+        "statement": [
+          {
+            "actions": [
+              "s3:GetObject"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "\${aws_cloudfront_origin_access_identity.HelloWorld_OriginAccessIdentity_5B20D425.iam_arn}"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "\${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*"
+            ]
+          }
+        ]
       }
     },
     "aws_partition": {
@@ -232,7 +255,7 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "bucket_prefix": "hello-world-testspechelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
           "et:grid:EnvironmentName": "Test",
@@ -241,12 +264,9 @@ exports[`Distribution Should synth with OAI and match SnapShot 1`] = `
       }
     },
     "aws_s3_bucket_policy": {
-      "HelloWorld_Policy_351F392A": {
+      "HelloWorld_Policy_9E56801E": {
         "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
-        "depends_on": [
-          "aws_cloudfront_origin_access_identity.HelloWorld_OriginAccessIdentity_5B20D425"
-        ],
-        "policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":\\"s3:GetObject\\",\\"Resource\\":\\"\${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*\\",\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"AWS\\":[\\"\${aws_cloudfront_origin_access_identity.HelloWorld_OriginAccessIdentity_5B20D425.iam_arn}\\"]}}]}"
+        "policy": "\${data.aws_iam_policy_document.HelloWorld_Policy_Document_6894C6E0.json}"
       }
     }
   },
@@ -344,7 +364,7 @@ exports[`Distribution Should synth with websiteConfig and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "bucket_prefix": "hello-world-testspechelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
           "et:grid:EnvironmentName": "Test",

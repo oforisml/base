@@ -3,7 +3,7 @@
 > [!IMPORTANT]
 > Terratest uses compiled package from `lib` directory, run `pnpm compile` after making changes!
 
-## Function Url test
+## Running Tests
 
 Run terratest:
 
@@ -12,6 +12,11 @@ $ make
 
 Test Targets:
   nodejs-function-url        Test Node.js function with a function URL
+  destinations               Test function with destinations
+  lambda-chain               Test chain of lambda functions
+  event-source-sqs           Test sqs event source with lambda
+  event-source-sqs-filtered  Test sqs event source with filter criteria
+  event-source-s3            Test s3 event source with lambda
 
 Other Targets:
   help                       Print out every target with a description
@@ -54,6 +59,9 @@ SKIP_synth_app=true SKIP_deploy_terraform=true SKIP_rename_app=true SKIP_validat
 ## Clean
 
 To clean up after running tests
+
+> [!WARNING]
+> This will remove TF State, preventing easy clean up of Cloud Resources
 
 ```console
 make clean

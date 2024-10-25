@@ -17,6 +17,7 @@ import { snakeCase } from "change-case";
 import { Construct, IConstruct } from "constructs";
 import { Arn, ArnComponents, ArnFormat, AwsProviderConfig } from ".";
 import { SpecBaseProps, SpecBase, ISpec } from "../";
+import { SKIP_DEPENDENCY_PROPAGATION } from "../private/terraform-dependables-aspect";
 
 const AWS_SPEC_SYMBOL = Symbol.for("@envtio/base/lib/aws.AwsSpec");
 
@@ -111,6 +112,7 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
       ),
       dataAwsServicePrincipals: {},
     };
+    // these should never depend on anything (HACK to avoid cycles)
     Object.defineProperty(this, AWS_SPEC_SYMBOL, { value: true });
   }
 
@@ -126,54 +128,66 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
       return this.lookup.awsProvider.region;
     }
     if (!this.lookup.dataAwsRegion) {
-      this.lookup.dataAwsRegion = new dataAwsRegion.DataAwsRegion(
-        this,
-        "Region",
-        {
-          provider: this.lookup.awsProvider,
-        },
-      );
+      const region = new dataAwsRegion.DataAwsRegion(this, "Region", {
+        provider: this.lookup.awsProvider,
+      });
+      // these should never depend on anything (HACK to avoid cycles)
+      Object.defineProperty(region, SKIP_DEPENDENCY_PROPAGATION, {
+        value: true,
+      });
+      this.lookup.dataAwsRegion = region;
     }
     return this.lookup.dataAwsRegion.name;
   }
 
   private get dataAwsCallerIdentity(): dataAwsCallerIdentity.DataAwsCallerIdentity {
     if (!this.lookup.dataAwsCallerIdentity) {
-      this.lookup.dataAwsCallerIdentity =
-        new dataAwsCallerIdentity.DataAwsCallerIdentity(
-          this,
-          "CallerIdentity",
-          {
-            provider: this.lookup.awsProvider,
-          },
-        );
+      const identity = new dataAwsCallerIdentity.DataAwsCallerIdentity(
+        this,
+        "CallerIdentity",
+        {
+          provider: this.lookup.awsProvider,
+        },
+      );
+      // these should never depend on anything (HACK to avoid cycles)
+      Object.defineProperty(identity, SKIP_DEPENDENCY_PROPAGATION, {
+        value: true,
+      });
+      this.lookup.dataAwsCallerIdentity = identity;
     }
     return this.lookup.dataAwsCallerIdentity;
   }
 
   private get dataAwsAvailabilityZones(): dataAwsAvailabilityZones.DataAwsAvailabilityZones {
     if (!this.lookup.dataAwsAvailabilityZones) {
-      this.lookup.dataAwsAvailabilityZones =
-        new dataAwsAvailabilityZones.DataAwsAvailabilityZones(
-          this,
-          "AvailabilityZones",
-          {
-            provider: this.lookup.awsProvider,
-          },
-        );
+      const azs = new dataAwsAvailabilityZones.DataAwsAvailabilityZones(
+        this,
+        "AvailabilityZones",
+        {
+          provider: this.lookup.awsProvider,
+        },
+      );
+      // these should never depend on anything (HACK to avoid cycles)
+      Object.defineProperty(azs, SKIP_DEPENDENCY_PROPAGATION, { value: true });
+      this.lookup.dataAwsAvailabilityZones = azs;
     }
     return this.lookup.dataAwsAvailabilityZones;
   }
 
   private get dataAwsPartition(): dataAwsPartition.DataAwsPartition {
     if (!this.lookup.dataAwsPartition) {
-      this.lookup.dataAwsPartition = new dataAwsPartition.DataAwsPartition(
+      const partition = new dataAwsPartition.DataAwsPartition(
         this,
         "Partitition",
         {
           provider: this.lookup.awsProvider,
         },
       );
+      // these should never depend on anything (HACK to avoid cycles)
+      Object.defineProperty(partition, SKIP_DEPENDENCY_PROPAGATION, {
+        value: true,
+      });
+      this.lookup.dataAwsPartition = partition;
     }
     return this.lookup.dataAwsPartition;
   }
@@ -256,18 +270,20 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
       this.lookup.dataAwsServicePrincipals[region] = {};
     }
     if (!this.lookup.dataAwsServicePrincipals[region][serviceName]) {
-      this.lookup.dataAwsServicePrincipals[region][serviceName] =
-        new dataAwsServicePrincipal.DataAwsServicePrincipal(
-          this,
-          `aws_svcp_${toTerraformIdentifier(region)}_${serviceName}}`,
-          {
-            serviceName,
-            provider:
-              region === DEFAULT_REGION_KEY
-                ? undefined
-                : this.getRegionalAwsProvider(region),
-          },
-        );
+      const svcp = new dataAwsServicePrincipal.DataAwsServicePrincipal(
+        this,
+        `aws_svcp_${toTerraformIdentifier(region)}_${serviceName}}`,
+        {
+          serviceName,
+          provider:
+            region === DEFAULT_REGION_KEY
+              ? undefined
+              : this.getRegionalAwsProvider(region),
+        },
+      );
+      // these should never depend on anything (HACK to avoid cycles)
+      Object.defineProperty(svcp, SKIP_DEPENDENCY_PROPAGATION, { value: true });
+      this.lookup.dataAwsServicePrincipals[region][serviceName] = svcp;
     }
     return this.lookup.dataAwsServicePrincipals[region][serviceName].name;
   }

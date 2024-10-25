@@ -63,3 +63,17 @@ func (err IamManagedPolicyNotFoundError) Error() string {
 func NewIamManagedPolicyNotFoundError(policyArn string) IamManagedPolicyNotFoundError {
 	return IamManagedPolicyNotFoundError{policyArn}
 }
+
+// BucketNotificationNotEnabledError is returned when the S3 bucket notification is not enabled.
+type BucketNotificationNotEnabledError struct {
+	bucketName string
+	region     string
+}
+
+func (err BucketNotificationNotEnabledError) Error() string {
+	return fmt.Sprintf("Bucket %s in %s has no notification configuration", err.bucketName, err.region)
+}
+
+func NewBucketNotificationNotEnabledError(region, bucketName string) BucketNotificationNotEnabledError {
+	return BucketNotificationNotEnabledError{bucketName, region}
+}

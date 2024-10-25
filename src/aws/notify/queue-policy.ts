@@ -36,10 +36,6 @@ export class QueuePolicy extends AwsBeaconBase {
   public get outputs(): Record<string, any> {
     return this.document.outputs;
   }
-  public get fqn(): string {
-    return this.document.fqn;
-  }
-
   constructor(scope: Construct, id: string, props: QueuePolicyProps) {
     super(scope, id, props);
     this.document = new PolicyDocument(this, "Document");

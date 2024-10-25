@@ -34,6 +34,7 @@ describe("Function", () => {
     // THEN
     spec.prepareStack(); // add last minute resources to the stack
     const result = Testing.synth(spec);
+    // expect(result).toMatchSnapshot();
     expect(result).toHaveResourceWithProperties(
       {
         tfResourceType: "aws_security_group",
@@ -44,10 +45,13 @@ describe("Function", () => {
     );
     expect(result).toHaveResourceWithProperties(
       {
-        tfResourceType: "aws_iam_policy",
+        tfResourceType: "aws_iam_role",
       },
       {
-        policy: expect.stringContaining("ec2:CreateNetworkInterface"),
+        managed_policy_arns: [
+          "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+          "arn:${data.aws_partition.Partitition.partition}:iam::aws:policy/service-role/AWSLambdaVPCAccessExecutionRole",
+        ],
       },
     );
     expect(result).toHaveResourceWithProperties(

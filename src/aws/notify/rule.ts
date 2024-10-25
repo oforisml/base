@@ -3,26 +3,43 @@ import {
   cloudwatchEventTarget,
   //schedulerScheduleGroup //TODO: support scheduler groups?
 } from "@cdktf/provider-aws";
-import { Lazy } from "cdktf";
+import { Lazy, Token } from "cdktf";
 import { Construct } from "constructs";
-// import { Statement } from "iam-floyd";
-import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
-import { RuleConfig, TfTargetConfig, Schedule, EventPattern } from "./";
+import {
+  AwsBeaconBase,
+  IAwsBeacon,
+  AwsBeaconProps,
+  AwsSpec,
+  ArnFormat,
+} from "..";
+import {
+  Schedule,
+  EventPattern,
+  IRuleTarget,
+  IEventBus,
+  EventCommonOptions,
+} from "./";
 import { mergeEventPattern, renderEventPattern } from "./util";
-// import { ServiceRole, IServiceRole } from "../iam";
 
-export interface RuleProps extends AwsBeaconProps, RuleConfig {
+export interface RuleProps extends AwsBeaconProps, EventCommonOptions {
   /**
-   * Rule Name suffix to append to Grid UUID
+   * Indicates whether the rule is enabled.
+   *
+   * @default true
+   */
+  readonly enabled?: boolean;
+
+  /**
+   * Rule Name prefix to append to Grid UUID
    *
    * Rule names must be made up of only uppercase and lowercase ASCII letters,
    * numbers, underscores, and hyphens, and Due to the length of the tf generated
-   * suffix, must be 38 characters or less long.
+   * suffix, must be 64 characters or less long.
    *
    *
-   * @default - No suffix
+   * @default - GridUUID + Stack Unique Name
    */
-  readonly nameSuffix?: string;
+  readonly namePrefix?: string;
 
   /**
    * The schedule or rate (frequency) that determines when EventBridge
@@ -42,27 +59,33 @@ export interface RuleProps extends AwsBeaconProps, RuleConfig {
   /**
    * Targets to invoke when this rule matches an event.
    *
-   * Input will be the full matched event unless modified using `inputPath`, `inputTransformer` properties.
+   * Input will be the full matched event. If you wish to specify custom
+   * target input, use `addTarget(target[, inputOptions])`.
    *
    * @default - No targets.
    */
-  readonly targets?: Record<string, TfTargetConfig>;
+  readonly targets?: IRuleTarget[];
 
   /**
-   * Additional restrictions for the event to route to the specified target
+   * The event bus to associate with this rule.
    *
-   * The method that generates the rule probably imposes some type of event
-   * filtering. The filtering implied by what you pass here is added
-   * on top of that filtering.
-   *
-   * @default - No additional filtering based on an event pattern.
-   *
-   * @see
-   * https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html
+   * @default - The default event bus.
    */
-  readonly eventPattern?: EventPattern;
+  readonly eventBus?: IEventBus;
 
-  readonly enabled?: boolean;
+  // /**
+  //  * Additional restrictions for the event to route to the specified target
+  //  *
+  //  * The method that generates the rule probably imposes some type of event
+  //  * filtering. The filtering implied by what you pass here is added
+  //  * on top of that filtering.
+  //  *
+  //  * @default - No additional filtering based on an event pattern.
+  //  *
+  //  * @see
+  //  * https://docs.aws.amazon.com/eventbridge/latest/userguide/eventbridge-and-event-patterns.html
+  //  */
+  // readonly eventPattern?: EventPattern;
 }
 
 export interface RuleOutputs {
@@ -80,65 +103,107 @@ export interface RuleOutputs {
 export interface IRule extends IAwsBeacon {
   /** Strongly typed outputs */
   readonly ruleOutputs: RuleOutputs;
+  /**
+   * The value of the event rule Amazon Resource Name (ARN), such as
+   * arn:aws:events:us-east-2:123456789012:rule/example.
+   *
+   * @attribute
+   */
+  readonly ruleArn: string;
+
+  /**
+   * The name event rule
+   *
+   * @attribute
+   */
+  readonly ruleName: string;
 }
 
 export class Rule extends AwsBeaconBase implements IRule {
-  // TODO: Add static fromLookup?
-  resource: cloudwatchEventRule.CloudwatchEventRule;
+  /**
+   * Import an existing EventBridge Rule provided an ARN
+   *
+   * @param scope The parent creating construct (usually `this`).
+   * @param id The construct's name.
+   * @param eventRuleArn Event Rule ARN (i.e. arn:aws:events:<region>:<account-id>:rule/MyScheduledRule).
+   */
+  public static fromEventRuleArn(
+    scope: Construct,
+    id: string,
+    eventRuleArn: string,
+  ): IRule {
+    const parts = AwsSpec.ofAwsBeacon(scope).splitArn(
+      eventRuleArn,
+      ArnFormat.SLASH_RESOURCE_NAME,
+    );
 
-  private readonly _outputs: RuleOutputs;
+    class Import extends AwsBeaconBase implements IRule {
+      public ruleArn = eventRuleArn;
+      public ruleName = parts.resourceName || "";
+      public ruleOutputs = {
+        name: this.ruleName,
+        arn: this.ruleArn,
+      };
+      public outputs = this.ruleOutputs;
+    }
+    return new Import(scope, id, {
+      environmentFromArn: eventRuleArn,
+    });
+  }
+
+  public readonly resource: cloudwatchEventRule.CloudwatchEventRule;
+  public get ruleArn() {
+    return this.resource.arn;
+  }
+  public get ruleName() {
+    return this.resource.name;
+  }
   public get ruleOutputs(): RuleOutputs {
-    return this._outputs;
+    return {
+      name: this.ruleName,
+      arn: this.ruleArn,
+    };
   }
   public get outputs(): Record<string, any> {
     return this.ruleOutputs;
   }
 
-  private readonly _ruleName: string;
-  public get ruleName(): string {
-    return this._ruleName;
-  }
-  private readonly scheduleExpression?: string;
-
-  private readonly targets: Record<string, TfTargetConfig> = {};
+  private readonly targets =
+    new Array<cloudwatchEventTarget.CloudwatchEventTargetConfig>();
   private readonly eventPattern: EventPattern = {};
 
-  constructor(scope: Construct, name: string, props: RuleProps) {
+  private readonly scheduleExpression?: string;
+  private readonly description?: string;
+  constructor(scope: Construct, name: string, props: RuleProps = {}) {
     super(scope, name, props);
 
-    const ruleName = this.gridUUID;
-    if (props.nameSuffix) {
-      if (name.length < 1 || name.length > 38) {
-        // TODO: substract gridUUID length from 38? (64 - 26 tf suffix)
-        throw new Error(
-          `Event rule name must be between 1 and 38 characters. Received: ${name}`,
-        );
-      }
-      if (!/^[\.\-_A-Za-z0-9]+$/.test(name)) {
-        throw new Error(
-          `Event rule name ${name} can contain only letters, numbers, periods, hyphens, or underscores with no spaces.`,
-        );
-      }
-      this._ruleName = `${ruleName}-${props.nameSuffix}`;
-    } else {
-      this._ruleName = ruleName;
-    }
-
-    if (props.eventBusName && props.schedule) {
+    if (props.eventBus && props.schedule) {
       throw new Error(
         "Cannot associate rule with 'eventBus' when using 'schedule'",
       );
     }
 
+    let namePrefix: string | undefined;
+    if (!props.ruleName) {
+      namePrefix = this.stack.uniqueResourceNamePrefix(this, {
+        prefix: props.namePrefix ?? this.gridUUID + "-",
+        allowedSpecialCharacters: ".-_",
+        maxLength: 64,
+      });
+    }
+    this.description = props.description;
     this.scheduleExpression = props.schedule?.expressionString;
+
+    // add a warning on synth when minute is not defined in a cron schedule
     props.schedule?._bind(this);
 
     this.resource = new cloudwatchEventRule.CloudwatchEventRule(
       this,
       "Resource",
       {
-        namePrefix: this._ruleName,
-        description: props.description,
+        name: props.ruleName,
+        namePrefix,
+        description: this.description,
         state:
           props.enabled == null
             ? "ENABLED"
@@ -147,22 +212,24 @@ export class Rule extends AwsBeaconBase implements IRule {
               : "DISABLED", //TODO: support ENABLED_WITH_ALL_CLOUDTRAIL_MANAGEMENT_EVENTS?
         scheduleExpression: this.scheduleExpression,
         eventPattern: Lazy.stringValue({
-          produce: () => this._renderEventPattern(),
+          produce: () => this.stack.toJsonString(this._renderEventPattern()),
         }),
-        eventBusName: props.eventBusName,
+        // terraform-provider-aws separates targets to different resources.
+        // targets: Lazy.anyValue({ produce: () => this.renderTargets() }),
+        eventBusName: props.eventBus?.eventBusName,
         dependsOn: props.dependsOn,
       },
     );
 
     this.addEventPattern(props.eventPattern);
 
-    for (const [id, target] of Object.entries(props.targets || {})) {
-      this.addTarget(id, target);
+    for (const target of props.targets || []) {
+      this.addTarget(target);
     }
-    this._outputs = {
-      name: this.resource.name,
-      arn: this.resource.arn,
-    };
+
+    this.node.addValidation({
+      validate: () => this.validateRule(props.ruleName),
+    });
   }
 
   /**
@@ -213,12 +280,76 @@ export class Rule extends AwsBeaconBase implements IRule {
   public _renderEventPattern(): any {
     return renderEventPattern(this.eventPattern);
   }
+
+  protected validateRule(ruleName?: string) {
+    if (ruleName !== undefined && !Token.isUnresolved(ruleName)) {
+      if (ruleName.length < 1 || ruleName.length > 64) {
+        throw new Error(
+          `Event rule name must be between 1 and 64 characters. Received: ${ruleName}`,
+        );
+      }
+      if (!/^[\.\-_A-Za-z0-9]+$/.test(ruleName)) {
+        throw new Error(
+          `Event rule name ${ruleName} can contain only letters, numbers, periods, hyphens, or underscores with no spaces.`,
+        );
+      }
+    }
+
+    const errors: string[] = [];
+    if (
+      Object.keys(this.eventPattern).length === 0 &&
+      !this.scheduleExpression
+    ) {
+      errors.push("Either 'eventPattern' or 'schedule' must be defined");
+    }
+
+    if (this.targets.length > 5) {
+      errors.push("Event rule cannot have more than 5 targets.");
+    }
+
+    return errors;
+  }
+
   /**
-   * Gives an external source (like an EventBridge Rule, SNS, or S3) permission
-   * to access the Lambda function.
+   * Adds a target to the rule. The abstract class RuleTarget can be extended to define new
+   * targets.
+   *
+   * No-op if target is undefined.
    */
-  public addTarget(id: string, target: TfTargetConfig) {
-    this.targets[id] = target;
+  public addTarget(target?: IRuleTarget): void {
+    if (!target) {
+      return;
+    }
+    // Simply increment id for each `addTarget` call. This is guaranteed to be unique.
+    const targetId = `Target${this.targets.length}`;
+    const targetProps = target.bind(this, targetId);
+    const inputProps = targetProps.input && targetProps.input.bind(this);
+    this.targets.push({
+      targetId,
+      roleArn: targetProps.role?.roleArn,
+      rule: this.resource.name,
+      arn: targetProps.arn,
+      ecsTarget: targetProps.ecsParameters,
+      httpTarget: targetProps.httpParameters,
+      kinesisTarget: targetProps.kinesisParameters,
+      runCommandTargets: targetProps.runCommandParameters,
+      batchTarget: targetProps.batchParameters,
+      deadLetterConfig: targetProps.deadLetterConfig,
+      retryPolicy: targetProps.retryPolicy,
+      sqsTarget: targetProps.sqsParameters,
+      redshiftTarget: targetProps.redshiftDataParameters,
+      // TODO: not available in terraform-provider-aws
+      // appSyncParameters: targetProps.appSyncParameters,
+      input: inputProps && inputProps.input,
+      inputPath: inputProps && inputProps.inputPath,
+      inputTransformer:
+        inputProps?.inputTemplate !== undefined
+          ? {
+              inputTemplate: inputProps.inputTemplate,
+              inputPaths: inputProps.inputPathsMap,
+            }
+          : undefined,
+    });
   }
 
   /**
@@ -229,19 +360,15 @@ export class Rule extends AwsBeaconBase implements IRule {
   public toTerraform(): any {
     /**
      * A preparing resolve might add new resources to the stack
-     *
-     * should not add resources if no targets are defined
      */
-    if (Object.keys(this.targets).length === 0) {
-      return {};
-    }
-
-    for (const [id, target] of Object.entries(this.targets)) {
-      if (this.node.tryFindChild(id)) continue; // ignore if already generated
-      new cloudwatchEventTarget.CloudwatchEventTarget(this, id, {
-        ...target,
-        rule: this.resource.name,
-      });
+    for (const target of this.targets) {
+      // note: targetId is calculated in addTarget()
+      if (this.node.tryFindChild(target.targetId!)) continue; // ignore if already generated
+      new cloudwatchEventTarget.CloudwatchEventTarget(
+        this,
+        target.targetId!,
+        target,
+      );
     }
     return {};
   }

@@ -27,10 +27,8 @@ new LocalBackend(stack, {
 
 if (!zoneId1 || !zoneId2 || !domainName1 || !domainName2) {
   throw new Error(
-    [
-      "Missing some or all required environment variables: ",
+    "Missing some or all required environment variables: " +
       "DNS_ZONE_ID1, DNS_ZONE_ID2, DNS_DOMAIN_NAME1, DNS_DOMAIN_NAME2",
-    ].join("\n"),
   );
 }
 

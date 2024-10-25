@@ -1,6 +1,5 @@
 import * as fs from "fs";
 import { cloudfrontFunction } from "@cdktf/provider-aws";
-import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { IKeyValueStore } from ".";
 import { AwsBeaconBase, IAwsBeacon, AwsBeaconProps } from "..";
@@ -78,7 +77,7 @@ class FileCode extends FunctionCode {
  *
  * @resource aws_cloudfront_function
  */
-export interface IFunction extends IAwsBeacon, ITerraformDependable {
+export interface IFunction extends IAwsBeacon {
   /** Strongly typed outputs
    *
    * @attribute
@@ -180,9 +179,6 @@ export class Function extends AwsBeaconBase implements IFunction {
   }
   public get outputs(): Record<string, any> {
     return this.functionOutputs;
-  }
-  public get fqn(): string {
-    return this.resource.fqn;
   }
   /**
    * the name of the CloudFront function

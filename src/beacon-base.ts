@@ -102,10 +102,15 @@ export abstract class BeaconBase extends TerraformElement implements IBeacon {
    */
   public abstract get outputs(): Record<string, any>; // TODO: should be allowed to be undefined?
 
-  constructor(scope: Construct, id: string, props: BeaconProps = {}) {
-    super(scope, id);
-    this.outputName = props.outputName || `${id}Outputs`;
-    this.friendlyName = props.friendlyName || `${this.environmentName}-${id}`;
+  constructor(
+    scope: Construct,
+    private readonly constructId: string,
+    props: BeaconProps = {},
+  ) {
+    super(scope, constructId);
+    this.outputName = props.outputName || `${constructId}Outputs`;
+    this.friendlyName =
+      props.friendlyName || `${this.environmentName}-${constructId}`;
 
     Aspects.of(this) // Add Grid tags to every resource defined within.
       .add(
@@ -123,5 +128,18 @@ export abstract class BeaconBase extends TerraformElement implements IBeacon {
         value: Lazy.anyValue({ produce: () => this.outputs || null }),
       });
     }
+  }
+
+  // force usage of node.addDependency instead of passing beacons via dependsOn
+  // Refering a beacon by fqn always triggers an error?
+  public get fqn(): string {
+    // try {
+    //   return super.fqn;
+    // } catch (e) {
+    // ref: https://github.com/aws/constructs/blob/10.x/src/construct.ts#L345
+    throw new Error(
+      `Use Construct node.addDependency instead of passing beacon fqn ${this.constructor.name} ${this.constructId}`,
+    );
+    // }
   }
 }

@@ -3,7 +3,6 @@ import {
   dataAwsIamPolicy,
   iamRolePolicyAttachment,
 } from "@cdktf/provider-aws";
-import { ITerraformDependable } from "cdktf";
 import { Construct } from "constructs";
 import { PolicyDocument } from "./policy-document";
 import { PolicyStatement } from "./policy-statement";
@@ -141,7 +140,7 @@ export interface ManagedPolicyAttributes
  */
 abstract class ManagedPolicyBase
   extends AwsBeaconBase
-  implements IManagedPolicy, ITerraformDependable
+  implements IManagedPolicy
 {
   /**
    * Returns the ARN of this managed policy.
@@ -190,7 +189,7 @@ abstract class ManagedPolicyBase
  */
 export class ManagedPolicy
   extends ManagedPolicyBase
-  implements IManagedPolicy, IGrantable, ITerraformDependable
+  implements IManagedPolicy, IGrantable
 {
   /**
    * Import a customer managed policy from the managedPolicyName.
@@ -235,9 +234,10 @@ export class ManagedPolicy
    */
   public static fromManagedPolicyArn(
     scope: Construct,
-    id: string,
+    id: string, // TODO: remove this, use managedPolicyArn as id?
     managedPolicyArn: string,
   ): IManagedPolicy {
+    // TODO: Check scope if child already exist and return that?
     class Import extends ManagedPolicyBase {
       public readonly managedPolicyArn = managedPolicyArn;
     }
@@ -256,7 +256,7 @@ export class ManagedPolicy
    */
   public static fromAwsManagedPolicyName(
     scope: Construct,
-    id: string,
+    id: string, //TODO: use managedPolicyName as id instead?
     managedPolicyName: string,
   ): IManagedPolicy {
     class AwsManagedPolicy extends ManagedPolicyBase {
@@ -346,12 +346,6 @@ export class ManagedPolicy
    * Use to define dependencies on this ManagedPolicy.
    */
   public resource: iamPolicy.IamPolicy;
-  /**
-   * @deprecated use `resource` to define Terraform dependencies
-   */
-  public get fqn(): string {
-    return this.resource.fqn;
-  }
 
   // TODO: Add support for pre-created policies?
   // NOTE: in E.T. pre-created policies are passed in through the Grid, so this seems not needed.

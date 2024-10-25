@@ -1,4 +1,5 @@
 import * as crypto from "crypto";
+// import { Token } from "cdktf";
 import { cannotCalcIdForEmptySetOfComponents } from "cdktf/lib/errors";
 import {
   UniqueResourceNameOptions,
@@ -36,6 +37,7 @@ export function makeUniqueResourceName(
   const maxLength = options.maxLength ?? 256;
   const separator = options.separator ?? "";
   const prefix = options.prefix ?? "";
+  const lowerCase = options.lowerCase ?? false;
   components = components.filter((x) => x !== HIDDEN_ID);
 
   if (components.length === 0) {
@@ -44,13 +46,16 @@ export function makeUniqueResourceName(
 
   // top-level resources will simply use the `name` as-is if the name is also short enough.
   if (components.length === 1) {
-    const topLevelResource =
+    let topLevelResource =
       prefix +
       removeNonAllowedSpecialCharacters(
         components[0],
-        separator,
         options.allowedSpecialCharacters,
       );
+
+    if (lowerCase) {
+      topLevelResource = topLevelResource.toLowerCase();
+    }
 
     if (topLevelResource.length <= maxLength) {
       return topLevelResource;
@@ -59,20 +64,23 @@ export function makeUniqueResourceName(
 
   // Calculate the hash from the full path, included unresolved tokens so the hash value is always unique
   const hash = pathHash(components);
-  const human =
+  let human =
     prefix +
     removeDupes(components)
       .filter((pathElement) => pathElement !== HIDDEN_FROM_HUMAN_ID)
       .map((pathElement) =>
         removeNonAllowedSpecialCharacters(
           pathElement,
-          separator,
           options.allowedSpecialCharacters,
         ),
       )
       .filter((pathElement) => pathElement)
       .join(separator)
       .concat(separator);
+
+  if (lowerCase) {
+    human = human.toLowerCase();
+  }
 
   const maxhumanLength = maxLength - HASH_LEN;
   return human.length > maxhumanLength
@@ -87,10 +95,11 @@ export function makeUniqueResourceNamePrefix(
   components: string[],
   options: UniqueResourceNamePrefixOptions,
 ) {
-  const suffixLength = options.suffixLength ?? 26;
+  const suffixLength = options.suffixLength ?? 26; // terraform provider aws generates a 26 character suffix
   const maxLength = (options.maxLength ?? 256) - suffixLength;
   const separator = options.separator ?? "";
   const prefix = options.prefix ?? "";
+  const lowerCase = options.lowerCase ?? false;
   components = components.filter((x) => x !== HIDDEN_ID);
 
   if (components.length === 0) {
@@ -99,27 +108,29 @@ export function makeUniqueResourceNamePrefix(
 
   // top-level resources will simply use the `name` as-is if the name is also short enough.
   if (components.length === 1) {
-    const topLevelResource =
+    let topLevelResource =
       prefix +
       removeNonAllowedSpecialCharacters(
         components[0],
-        separator,
         options.allowedSpecialCharacters,
       );
+
+    if (lowerCase) {
+      topLevelResource = topLevelResource.toLowerCase();
+    }
 
     if (topLevelResource.length <= maxLength) {
       return topLevelResource;
     }
   }
 
-  const human =
+  let human =
     prefix +
     removeDupes(components)
       .filter((pathElement) => pathElement !== HIDDEN_FROM_HUMAN_ID)
       .map((pathElement) =>
         removeNonAllowedSpecialCharacters(
           pathElement,
-          separator,
           options.allowedSpecialCharacters,
         ),
       )
@@ -127,6 +138,12 @@ export function makeUniqueResourceNamePrefix(
       .join(separator)
       .concat(separator);
 
+  if (lowerCase) {
+    human = human.toLowerCase();
+  }
+
+  // TODO: does it make sense to split in the middle for these?
+  // Or try to presserve the passed in prefix at all times?
   return human.length > maxLength
     ? `${splitInMiddle(human, maxLength)}`
     : `${human}`;
@@ -150,7 +167,6 @@ function pathHash(path: string[]): string {
  */
 function removeNonAllowedSpecialCharacters(
   s: string,
-  _separator: string,
   allowedSpecialCharacters?: string,
 ) {
   const pattern = allowedSpecialCharacters

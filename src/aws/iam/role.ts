@@ -1,5 +1,5 @@
 import { iamRole } from "@cdktf/provider-aws";
-import { Token, ITerraformDependable } from "cdktf";
+import { Token } from "cdktf";
 import { Construct } from "constructs";
 import { ArnFormat, AwsBeaconBase, AwsSpec, AwsBeaconProps } from "..";
 import { Grant } from "./grant";
@@ -419,10 +419,6 @@ export class Role extends AwsBeaconBase implements IRole {
    * Direct access to the underlying Terraform resource.
    */
   public readonly resource: iamRole.IamRole;
-  public get fqn(): string {
-    return this.resource.fqn;
-  }
-
   private defaultPolicy?: Policy;
   private readonly managedPolicies: IManagedPolicy[] = [];
   private readonly attachedPolicies = new AttachedPolicies();
@@ -794,7 +790,7 @@ export interface RoleOutputs {
 /**
  * A Role object
  */
-export interface IRole extends IIdentity, ITerraformDependable {
+export interface IRole extends IIdentity {
   /**
    * strongly typed roleOutputs
    *

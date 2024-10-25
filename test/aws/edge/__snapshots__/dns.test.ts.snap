@@ -180,7 +180,7 @@ exports[`DnsZone Create should synth and match SnapShot 1`] = `
     },
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "bucket_prefix": "hello-world-testspechelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
           "et:grid:EnvironmentName": "Test",

@@ -4,10 +4,12 @@
 // This is not undefined when the policy document is empty.
 // TODO: Add validation and errors for empty policy documents
 import { dataAwsIamPolicyDocument } from "@cdktf/provider-aws";
-import { Lazy, ITerraformDependable } from "cdktf";
+import { Lazy, IResolveContext } from "cdktf";
 import { Construct } from "constructs";
 import { PolicyDocumentConfig, PolicyStatement } from ".";
 import { AwsBeaconBase, IAwsBeacon } from "..";
+import { mergeStatements } from "./private/merge-statements";
+import { PostProcessPolicyDocument } from "./private/postprocess-policy-document";
 
 export interface PolicyDocumentOutputs {
   /**
@@ -16,7 +18,7 @@ export interface PolicyDocumentOutputs {
   readonly policy: any;
 }
 
-export interface IPolicyDocument extends IAwsBeacon, ITerraformDependable {
+export interface IPolicyDocument extends IAwsBeacon {
   // strongly typed access to outputs
   readonly policyDocumentOutputs: PolicyDocumentOutputs;
   readonly isEmpty: boolean;
@@ -62,6 +64,32 @@ export interface IPolicyDocument extends IAwsBeacon, ITerraformDependable {
   toDocumentJson(): any;
 }
 
+export interface PolicyDocumentProps extends PolicyDocumentConfig {
+  /**
+   * Try to minimize the policy by merging statements
+   *
+   * To avoid overrunning the maximum policy size, combine statements if they produce
+   * the same result. Merging happens according to the following rules:
+   *
+   * - The Effect of both statements is the same
+   * - Neither of the statements have a 'Sid'
+   * - Combine Principals if the rest of the statement is exactly the same.
+   * - Combine Resources if the rest of the statement is exactly the same.
+   * - Combine Actions if the rest of the statement is exactly the same.
+   * - We will never combine NotPrincipals, NotResources or NotActions, because doing
+   *   so would change the meaning of the policy document.
+   *
+   * @default - false, unless the feature flag `@aws-cdk/aws-iam:minimizePolicies` is set
+   */
+  readonly minimize?: boolean;
+  /**
+   * Automatically assign Statement Ids to all statements
+   *
+   * @default false
+   */
+  readonly assignSids?: boolean;
+}
+
 export class PolicyDocument extends AwsBeaconBase implements IPolicyDocument {
   /**
    * Creates a new PolicyDocument based on the object provided.
@@ -99,19 +127,15 @@ export class PolicyDocument extends AwsBeaconBase implements IPolicyDocument {
   public get json(): string {
     return this.resource.json;
   }
+  private readonly autoAssignSids: boolean;
+  private readonly minimize?: boolean;
 
-  // ITerraform Dependable
-  public get fqn(): string {
-    return this.resource.fqn;
-  }
-
-  constructor(scope: Construct, id: string, props: PolicyDocumentConfig = {}) {
+  constructor(scope: Construct, id: string, props: PolicyDocumentProps = {}) {
     super(scope, id, props);
-    // TODO: Add minify support? (caution - mergeStatement is complex!)
-    // this.autoAssignSids = !!props.assignSids;
-    // this.minimize = props.minimize;
+    this.autoAssignSids = !!props.assignSids;
+    this.minimize = props.minimize ?? false;
     this.addStatements(...(props.statement || []));
-
+    const self = this;
     // TODO: move in toTerraform() and don't generate anything if isEmpty()?
     this.resource = new dataAwsIamPolicyDocument.DataAwsIamPolicyDocument(
       this,
@@ -119,18 +143,36 @@ export class PolicyDocument extends AwsBeaconBase implements IPolicyDocument {
       {
         ...props,
         statement: Lazy.anyValue({
-          produce: () =>
-            // TODO: add maybeMergeStatements() to merge statements and drop duplicates
-            // ref: https://github.com/aws/aws-cdk/tree/v2.161.1/packages/aws-cdk-lib/aws-iam/lib/private/postprocess-policy-document.ts
-            // ref: https://github.com/aws/aws-cdk/tree/v2.161.1/packages/aws-cdk-lib/aws-iam/lib/policy-document.ts#L191
-            this.statements.map((s) =>
+          produce: (context: IResolveContext) => {
+            this._maybeMergeStatements();
+            context.registerPostProcessor(
+              new PostProcessPolicyDocument(self.autoAssignSids),
+            );
+            return this.statements.map((s) =>
               dataAwsIamPolicyDocument.dataAwsIamPolicyDocumentStatementToTerraform(
                 s.toJSON(),
               ),
-            ),
+            );
+          },
         }),
       },
     );
+  }
+
+  /**
+   * Perform statement merging (if enabled and not done yet)
+   *
+   * @internal
+   */
+  public _maybeMergeStatements(): void {
+    if (this.minimize && this.statements.length > 1) {
+      const result = mergeStatements(this.statements, { scope: this });
+      this.statements.splice(
+        0,
+        this.statements.length,
+        ...result.mergedStatements,
+      );
+    }
   }
 
   // /**
@@ -157,6 +199,8 @@ export class PolicyDocument extends AwsBeaconBase implements IPolicyDocument {
       return undefined;
     }
 
+    // merge resolved statements
+    this._maybeMergeStatements();
     const doc = {
       Statement: this.statements.map((s) => s.toStatementJson()),
       Version: "2012-10-17",
@@ -164,6 +208,7 @@ export class PolicyDocument extends AwsBeaconBase implements IPolicyDocument {
 
     return doc;
   }
+
   /**
    * Whether the policy document contains any statements.
    */

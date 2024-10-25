@@ -1,89 +1,87 @@
 // source: https://github.com/cdktf-plus/cdktf-plus/blob/586aabad3ab2fb2a2e93e05ed33f94474ebe9397/packages/%40cdktf-plus/aws/lib/aws-lambda-function/index.ts
+// update to align closer with https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-lambda/lib/function.ts
 import {
   lambdaFunction,
-  lambdaPermission,
   cloudwatchLogGroup,
-  lambdaFunctionUrl,
   securityGroup,
-  lambdaFunctionEventInvokeConfig,
   lambdaEventSourceMapping,
+  dataAwsLambdaFunction,
 } from "@cdktf/provider-aws";
-import {
-  IResolveContext,
-  Lazy,
-  IResolvable,
-  ITerraformDependable,
-} from "cdktf";
+import { IResolveContext, Lazy, IResolvable, Token, Fn } from "cdktf";
 import { Construct } from "constructs";
-import { Statement } from "iam-floyd";
+import { RetentionDays, AwsSpec, ArnFormat } from "..";
+import { Architecture } from "./architecture";
+import { EventInvokeConfigOptions } from "./event-invoke-config";
+import { IEventSourceMapping } from "./event-source-mapping";
+import { AliasOptions, Alias } from "./function-alias";
 import {
-  Architecture,
-  PermissionConfig,
-  UrlConfig,
-  VpcConfig,
-  EventSourceMappingConfig,
-  EventInvokeConfig,
-} from ".";
-import {
-  AwsBeaconBase,
-  IAwsBeacon,
-  AwsBeaconProps,
-  AwsAccessLevels,
-  RetentionDays,
-} from "..";
+  LambdaFunctionBase,
+  IFunction,
+  FunctionAttributes,
+  IEventSource,
+} from "./function-base";
+import { FunctionUrl, FunctionUrlOptions } from "./function-url";
+import { VpcConfig } from "./function-vpc-config.generated";
+import { addAlias } from "./util";
 import { Duration } from "../../";
-// These are not exported due to iam-floyd not being JSII compatible
-import { FloydServiceRole, IFloydServiceRole } from "../iam/floyd-service-role";
-import { IQueue } from "../notify";
-import { IBucket } from "../storage";
+import * as iam from "../iam";
+import { IQueue, Queue } from "../notify";
 
-/**
- * Options to add an EventInvokeConfig to a function.
- */
-export interface EventInvokeConfigOptions extends AwsBeaconProps {
+export interface FunctionOutputs {
   /**
-   * The destination for failed invocations.
-   *
-   * Ensure the Lambda Function IAM Role has necessary permissions for the destination
-   *
-   * @default - no destination
+   * AWS Lambda function name
    */
-  readonly onFailure?: string; //TODO: Re-add IDestination.bind to automatically handle permissions?
+  readonly name: string;
 
   /**
-   * The destination for successful invocations.
-   *
-   * Ensure the Lambda Function IAM Role has necessary permissions for the destination
-   *
-   * @default - no destination
+   * AWS Lambda arn of the function
    */
-  readonly onSuccess?: string; //TODO: Re-add IDestination.bind to automatically handle permissions?
+  readonly arn: string;
 
   /**
-   * The maximum age of a request that Lambda sends to a function for
-   * processing.
-   *
-   * Minimum: 60 seconds
-   * Maximum: 6 hours
-   *
-   * @default Duration.hours(6)
+   * The IAM Role associated with the Lambda function
    */
-  readonly maxEventAge?: Duration;
+  readonly roleArn: string;
 
   /**
-   * The maximum number of times to retry when the function returns an error.
-   *
-   * Minimum: 0
-   * Maximum: 2
-   *
-   * @default 2
+   * Function URL if enabled
    */
-  readonly retryAttempts?: number;
+  readonly url?: string | IResolvable;
+
+  /**
+   * Security group of the function if created
+   */
+  readonly defaultSecurityGroup?: string | IResolvable;
 }
 
 export interface FunctionProps extends EventInvokeConfigOptions {
   /**
+   * Force function name (for adoption of existing resources).
+   *
+   * Prefer to use functionNamePrefix.
+   *
+   * Use [Terraform Resource Meta Arguments](https://developer.hashicorp.com/terraform/language/resources/syntax#meta-arguments)
+   * to control lifecycle when replacing the function.
+   *
+   * @default - If omitted, Refer to `functionNamePrefix`.
+   */
+  readonly functionName?: string;
+
+  /**
+   * A name prefix for the function.
+   *
+   * @default - Grid generates a unique physical ID and uses that
+   * ID for the function's name.
+   */
+  readonly functionNamePrefix?: string;
+
+  /**
    * The environment variables to be passed to the Lambda function.
+   *
+   * Key-value pairs that Lambda caches and makes available for your Lambda
+   * functions. Use environment variables to apply configuration changes, such
+   * as test and production environment configurations, without changing your
+   * Lambda function source code.
    */
   readonly environment?: { [key: string]: string };
 
@@ -114,19 +112,52 @@ export interface FunctionProps extends EventInvokeConfigOptions {
   readonly logRetentionInDays?: RetentionDays;
 
   /**
-   * The memory limit in MB. Defaults to 512.
+   * The memory limit in MB.
+   *
+   * @default 128.
    */
   readonly memorySize?: number;
 
   /**
-   * The timout in seconds. Defaults to 15.
+   * The function execution time (in seconds) after which Lambda terminates
+   * the function. Because the execution time affects cost, set this value
+   * based on the function's expected execution time.
+   *
+   * @default Duration.seconds(3)
    */
-  readonly timeout?: number;
+  readonly timeout?: Duration;
 
   /**
    * Layers for the Lambda.
    */
   readonly layers?: string[];
+
+  /**
+   * Initial policy statements to add to the created Lambda Role.
+   *
+   * You can call `addToRolePolicy` to the created lambda to add statements post creation.
+   *
+   * @default - No policy statements are added to the created Lambda role.
+   */
+  readonly initialPolicy?: iam.PolicyStatement[];
+
+  /**
+   * Lambda execution role.
+   *
+   * This is the role that will be assumed by the function upon execution.
+   * It controls the permissions that the function will have. The Role must
+   * be assumable by the 'lambda.amazonaws.com' service principal.
+   *
+   * The default Role automatically has permissions granted for Lambda execution. If you
+   * provide a Role, you must add the relevant AWS managed policies yourself.
+   *
+   * The relevant managed policies are "service-role/AWSLambdaBasicExecutionRole" and
+   * "service-role/AWSLambdaVPCAccessExecutionRole".
+   *
+   * @default - A unique role will be generated for this lambda function.
+   * Both supplied and generated roles can always be changed by calling `addToRolePolicy`.
+   */
+  readonly role?: iam.IRole;
 
   /**
    * Config for network connectivity to AWS resources in a VPC, specify a list
@@ -152,13 +183,23 @@ export interface FunctionProps extends EventInvokeConfigOptions {
   readonly deadLetterQueue?: IQueue;
 
   /**
+   * Enabled DLQ. If `deadLetterQueue` is undefined,
+   * an SQS queue with default options will be defined for your Function.
+   *
+   * @default - false unless `deadLetterQueue` is set, which implies DLQ is enabled.
+   */
+  readonly deadLetterQueueEnabled?: boolean;
+
+  // TODO: re-add SNS deadLetterTopic
+
+  /**
    * Event sources for this function.
    *
    * You can also add event sources using `addEventSource`.
    *
    * @default - No event sources.
    */
-  readonly events?: { [id: string]: EventSourceMappingConfig };
+  readonly events?: IEventSource[];
 
   /**
    * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/5.60.0/docs/resources/lambda_function#reserved_concurrent_executions LambdaFunction#reserved_concurrent_executions}
@@ -169,91 +210,72 @@ export interface FunctionProps extends EventInvokeConfigOptions {
    * Tags to apply to the Lambda function.
    */
   readonly tags?: { [key: string]: string };
-}
-
-export interface FunctionOutputs {
-  /**
-   * AWS Lambda function name
-   */
-  readonly name: string;
 
   /**
-   * AWS Lambda arn of the function
-   */
-  readonly arn: string;
-
-  /**
-   * The IAM Role associated with the Lambda function
-   */
-  readonly role: string | IResolvable;
-
-  /**
-   * Function URL if enabled
-   */
-  readonly url?: string | IResolvable;
-
-  /**
-   * Security group of the function if created
-   */
-  readonly defaultSecurityGroup?: string | IResolvable;
-}
-
-export interface IFunction extends IAwsBeacon, ITerraformDependable {
-  /** Strongly typed outputs */
-  readonly functionOutputs: FunctionOutputs;
-  readonly functionName: string;
-  addPermission(alias: string, permission: PermissionConfig): void;
-  dropPermission(alias: string): void;
-
-  /**
-   * Adds a url to this function.
-   */
-  addUrl(url: UrlConfig): void;
-
-  /**
-   * Add an environment variable to this function.
-   */
-  addEnvironment(key: string, value: string): IFunction;
-
-  /**
-   * Adds an event source to this function.
+   * Setting this property informs the CDK that the imported function ALREADY HAS the necessary permissions
+   * for what you are trying to do. When not configured, the CDK attempts to auto-determine whether or not
+   * additional permissions are necessary on the function when grant APIs are used. If the CDK tried to add
+   * permissions on an imported lambda, it will fail.
    *
-   * The following example adds an SQS Queue as an event source:
-   * ```
-   * myFunction.addEventSource({
-   *  eventSourceArn: myQueue.queueOutputs.arn,
-   * });
-   * ```
-   */
-  addEventSource(id: string, source: EventSourceMappingConfig): void;
-
-  /**
-   * Configures options for asynchronous invocation.
-   */
-  configureAsyncInvoke(options: EventInvokeConfig): void;
-
-  /*
-   * Give Function accesslevel permissions to bucket
-   */
-  bucketPermissions(
-    bucket: IBucket,
-    permissions: AwsAccessLevels,
-    objectsKeyPattern?: any,
-  ): void;
-
-  /**
-   * Give Function accesslevel permissions to queue
-   */
-  queuePermissions(bucket: IQueue, permissions: AwsAccessLevels): void;
-
-  /**
-   * Give Function permission to invoke another function
+   * Set this property *ONLY IF* you are committing to manage the imported function's permissions outside of
+   * CDK. You are acknowledging that your CDK code alone will have insufficient permissions to access the
+   * imported function.
    *
-   * (doesn't work for cross-account resources)
-   * @param fn Function to invoke or arn of the function
+   * @default false
    */
-  functionInvokePermission(fn: IFunction | string): void;
+  readonly skipPermissions?: boolean;
+
+  /**
+   * Sets the loggingFormat for the function.
+   * @default LoggingFormat.TEXT
+   */
+  readonly loggingFormat?: LoggingFormat;
+
+  /**
+   * Sets the application log level for the function.
+   * @default ApplicationLogLevel.INFO
+   */
+  readonly applicationLogLevel?: ApplicationLogLevel;
+
+  /**
+   * Sets the system log level for the function.
+   * @default SystemLogLevel.INFO
+   */
+  readonly systemLogLevel?: SystemLogLevel;
+  /**
+   * Whether to publish creation/change as new Lambda Function Version.
+   *
+   * Docs at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function#publish LambdaFunction#publish}
+   * @default false
+   */
+  readonly publish?: boolean | IResolvable;
+
+  // // This will be defined by extending classes
+  // // ref: https://aws.github.io/jsii/user-guides/lib-author/typescript-restrictions/#covariant-overrides-parameter-list-changes
+  // // implement Runtime as a class?
+  // // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-lambda/lib/runtime.ts
+  // /**
+  //  * Identifier of the function's runtime.
+  //  *
+  //  * Docs:
+  //  * - at Terraform Registry: {@link https://registry.terraform.io/providers/hashicorp/aws/latest/docs/resources/lambda_function#runtime LambdaFunction#runtime}
+  //  * - AWS Lambda CreatFunction docs: {@link https://docs.aws.amazon.com/lambda/latest/api/API_CreateFunction.html#lambda-CreateFunction-request-Runtime CreateFunction#rntime}
+  //  */
+  // readonly runtime?: string;
 }
+
+// re-add ec2.IConnectable?
+
+// /**
+//  * A Lambda function.
+//  */
+// export interface IFunction extends IAwsBeacon, iam.IGrantable {
+
+//   /**
+//    * Add an environment variable to this function.
+//    */
+//   addEnvironment(key: string, value: string): IFunction;
+// }
 
 /**
  * Provides a Lambda Function resource. Lambda allows you to trigger execution
@@ -268,34 +290,294 @@ export interface IFunction extends IAwsBeacon, ITerraformDependable {
  * @resource aws_lambda_function
  * @beacon-class compute.IFunction
  */
-export class LambdaFunction extends AwsBeaconBase implements IFunction {
-  // TODO: Add static fromLookup?
+export class LambdaFunction extends LambdaFunctionBase implements IFunction {
+  // TODO: Terraform aws_lambda_function == CDK FunctionVersion
+
+  /**
+   * Latest published version of your Lambda Function.
+   */
+  public get version(): string {
+    // TODO: What is this if publish is false??
+    return this.resource.version;
+  }
+
+  /**
+   * Import a lambda function into the E.T. spec using its name
+   */
+  public static fromFunctionName(
+    scope: Construct,
+    id: string,
+    functionName: string,
+  ): IFunction {
+    return LambdaFunction.fromFunctionAttributes(scope, id, {
+      functionArn: AwsSpec.ofAwsBeacon(scope).formatArn({
+        service: "lambda",
+        resource: "function",
+        resourceName: functionName,
+        arnFormat: ArnFormat.COLON_RESOURCE_NAME,
+      }),
+      sameEnvironment: true,
+    });
+  }
+
+  /**
+   * Import a lambda function into the E.T. spec using its ARN.
+   *
+   * For `Function.addPermissions()` to work on this imported lambda, make sure that is
+   * in the same account and region as the stack you are importing it into.
+   */
+  public static fromFunctionArn(
+    scope: Construct,
+    id: string,
+    functionArn: string,
+  ): IFunction {
+    return LambdaFunction.fromFunctionAttributes(scope, id, { functionArn });
+  }
+
+  /**
+   * Creates a Lambda function object which represents a function not defined
+   * within this stack.
+   *
+   * For `Function.addPermissions()` to work on this imported lambda, set the sameEnvironment property to true
+   * if this imported lambda is in the same account and region as the stack you are importing it into.
+   *
+   * @param scope The parent construct
+   * @param id The name of the lambda construct
+   * @param attrs the attributes of the function to import
+   */
+  public static fromFunctionAttributes(
+    scope: Construct,
+    id: string,
+    attrs: FunctionAttributes,
+  ): IFunction {
+    const functionArn = attrs.functionArn;
+    const functionName = extractNameFromArn(attrs.functionArn);
+    const role = attrs.role;
+
+    class Import extends LambdaFunctionBase {
+      public readonly resource: dataAwsLambdaFunction.DataAwsLambdaFunction;
+      public readonly functionName = functionName;
+      public readonly functionArn = functionArn;
+      // TODO: Resolve role and principal resolve from TF data source?
+      public readonly grantPrincipal: iam.IPrincipal;
+      public readonly role = role;
+      public readonly permissionsNode = this.node;
+      /**
+       * The version of the Lambda function returned.
+       *
+       * If qualifier is not set, this will resolve to the most recent published version.
+       * If no published version of the function exists, version will resolve to `$LATEST`.
+       */
+      public get version(): string {
+        return this.resource.version;
+      }
+      // Force user to provide arch or assume X86_64
+      public readonly architecture = attrs.architecture ?? Architecture.X86_64;
+      // public get architecture(): string {
+      //   return Fn.element(this.resource.architectures, 0) as string;
+      // }
+      public readonly resourceArnsForGrantInvoke = [
+        this.functionArn,
+        `${this.functionArn}:*`,
+      ];
+      public get functionOutputs(): FunctionOutputs {
+        return {
+          name: this.functionName,
+          arn: this.functionArn,
+          roleArn: this.role?.roleArn ?? "",
+        };
+      }
+      public get outputs() {
+        return this.functionOutputs;
+      }
+      protected readonly canCreatePermissions =
+        attrs.sameEnvironment ?? this._isStackAccount();
+      protected readonly _skipPermissions = attrs.skipPermissions ?? false;
+
+      constructor(s: Construct, i: string) {
+        super(s, i, {
+          environmentFromArn: functionArn,
+        });
+
+        this.grantPrincipal =
+          role || new iam.UnknownPrincipal({ resource: this });
+        this.resource = new dataAwsLambdaFunction.DataAwsLambdaFunction(
+          this,
+          "Resource",
+          {
+            functionName: this.functionName,
+          },
+        );
+
+        // // TODO: re-add support for EC2 connections
+        // if (attrs.securityGroup) {
+        //   this._connections = new ec2.Connections({
+        //     securityGroups: [attrs.securityGroup],
+        //   });
+        // }
+      }
+    }
+
+    return new Import(scope, id);
+  }
+
   protected readonly resource: lambdaFunction.LambdaFunction;
 
   private readonly _outputs: FunctionOutputs;
+
+  /** Strongly Typed Function Outputs */
   public get functionOutputs(): FunctionOutputs {
     return this._outputs;
   }
   public get outputs(): Record<string, any> {
     return this.functionOutputs;
   }
-  public get fqn(): string {
-    return this.resource.fqn;
+
+  /**
+   * The name of the function.
+   *
+   * (not a TOKEN)
+   */
+  public readonly functionName: string;
+
+  /**
+   * The ARN fo the function.
+   */
+  public get functionArn(): string {
+    return this.resource.arn;
   }
 
-  private readonly _functionName: string;
-  public get functionName(): string {
-    return this._functionName;
+  /**
+   * The ARN fo the function.
+   * (if versioning is enabled via publish = true)
+   */
+  public get functionQualifiedArn(): string {
+    return this.resource.qualifiedArn;
   }
 
-  // TODO: Make role publicly accessible
-  // requires JSII compatible iam-floyd or switch to https://www.awsiamactions.io/
-  private readonly role: IFloydServiceRole;
-  public readonly logGroup: cloudwatchLogGroup.CloudwatchLogGroup;
-  public readonly environment: { [key: string]: string };
+  /**
+   * The ARN fo the function.
+   */
+  public get functionQualifiedInvokeArn(): string {
+    return this.resource.qualifiedInvokeArn;
+  }
 
-  private _url?: lambdaFunctionUrl.LambdaFunctionUrl;
-  public get url(): lambdaFunctionUrl.LambdaFunctionUrl | undefined {
+  /**
+   * The architecture of this Lambda Function.
+   */
+  public readonly architecture: Architecture;
+
+  /**
+   * The principal this Lambda Function is running as
+   */
+  public readonly grantPrincipal: iam.IPrincipal;
+
+  /**
+   * The IAM role associated with this function.
+   *
+   * Undefined if the function was imported without a role.
+   */
+  public readonly role?: iam.IRole;
+
+  /**
+   * The DLQ (as queue) associated with this Lambda Function (this is an optional attribute).
+   */
+  public readonly deadLetterQueue?: IQueue;
+
+  /**
+   * The timeout configured for this lambda.
+   */
+  public readonly timeout?: Duration;
+
+  /**
+   * The construct node where permissions are attached.
+   */
+  public readonly permissionsNode = this.node;
+
+  protected readonly canCreatePermissions = true;
+
+  /**
+   * Mapping of invocation principals to grants. Used to de-dupe `grantInvoke()` calls.
+   * @internal
+   */
+  protected _invocationGrants: Record<string, iam.Grant> = {};
+
+  /**
+   * Mapping of fucntion URL invocation principals to grants. Used to de-dupe `grantInvokeUrl()` calls.
+   * @internal
+   */
+  protected _functionUrlInvocationGrants: Record<string, iam.Grant> = {};
+
+  // // Teraform provider for AWS Automatically manages Function Versioning through code hash..
+  // // need to drop most of this version logic..
+
+  // private readonly currentVersionOptions?: VersionOptions;
+  // private _currentVersion?: Version;
+  // /**
+  //  * Returns a `lambda.Version` which represents the current version of this
+  //  * Lambda function. A new version will be created every time the function's
+  //  * configuration changes.
+  //  *
+  //  * You can specify options for this version using the `currentVersionOptions`
+  //  * prop when initializing the `lambda.Function`.
+  //  */
+  // public get currentVersion(): Version {
+  //   if (this._currentVersion) {
+  //     return this._currentVersion;
+  //   }
+
+  //   // if (this._warnIfCurrentVersionCalled) {
+  //   //   this.warnInvokeFunctionPermissions(this);
+  //   // }
+
+  //   this._currentVersion = new Version(this, "CurrentVersion", {
+  //     lambda: this,
+  //     ...this.currentVersionOptions,
+  //   });
+
+  //   // override the version's logical ID with a lazy string which includes the
+  //   // hash of the function itself, so a new version resource is created when
+  //   // the function configuration changes.
+  //   const cfn = this._currentVersion.node.defaultChild as TerraformResource;
+  //   const originalLogicalId = this.stack.resolve(cfn.logicalId) as string;
+
+  //   cfn.overrideLogicalId(
+  //     Lazy.stringValue({
+  //       produce: () => {
+  //         const hash = calculateFunctionHash(this, this.hashMixins.join(""));
+  //         const logicalId = trimFromStart(originalLogicalId, 255 - 32);
+  //         return `${logicalId}${hash}`;
+  //       },
+  //     }),
+  //   );
+
+  //   return this._currentVersion;
+  // }
+
+  /**
+   * The ARN(s) to put into the resource field of the generated IAM policy for grantInvoke()
+   */
+  public get resourceArnsForGrantInvoke() {
+    // TODO: should this be qualifiedArn or qualifiedInvokeArn?
+    // https://registry.terraform.io/providers/hashicorp/aws/5.68.0/docs/resources/lambda_function#qualified_arn
+    return [this.functionArn, this.functionQualifiedInvokeArn];
+  }
+
+  /** @internal */
+  public readonly _logGroup: cloudwatchLogGroup.CloudwatchLogGroup;
+
+  /**
+   * Environment variables for this function
+   */
+  public readonly environment: { [key: string]: string } = {};
+
+  private _url?: string;
+  /**
+   * HTTP Endpoint for this function if defined.
+   *
+   * use `addFunctionUrl` to enable Endpoint.
+   */
+  public get url(): string | undefined {
     return this._url;
   }
 
@@ -311,61 +593,141 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
     return this._securityGroup;
   }
 
-  // Permissions are stored in a map to allow for easy overriding and dropping.
-  // Permissions are added to the stack at Synth time.
-  private readonly permissions: Record<string, PermissionConfig> = {};
-
   constructor(scope: Construct, name: string, props: FunctionProps) {
     super(scope, name, props);
 
     const {
+      description,
       environment: variables,
       logRetentionInDays = RetentionDays.ONE_WEEK,
-      memorySize = 512,
-      timeout = 600,
+      memorySize = 128,
+      timeout = Duration.seconds(3),
       layers,
       reservedConcurrentExecutions,
     } = props;
-    this.environment = variables || {};
 
-    this._functionName = `${this.gridUUID}-${name}`;
+    /**
+     * The name or ARN of the Lambda function.
+     * is limited to 64 characters in length.
+     *
+     * ARN Pattern: ([a-zA-Z0-9-_]+)(:(\$LATEST|[a-zA-Z0-9-_]+))?
+     */
+    const functionName =
+      props.functionName ??
+      this.stack.uniqueResourceNamePrefix(this, {
+        prefix: props.functionNamePrefix ?? this.gridUUID + "-",
+        allowedSpecialCharacters: "+",
+        maxLength: 64,
+      });
+
+    if (functionName && !Token.isUnresolved(functionName)) {
+      if (functionName.length > 64) {
+        throw new Error(
+          `Function name can not be longer than 64 characters but has ${functionName.length} characters.`,
+        );
+      }
+      if (!/^[a-zA-Z0-9-_]+$/.test(functionName)) {
+        throw new Error(
+          `Function name ${functionName} can contain only letters, numbers, hyphens, or underscores with no spaces.`,
+        );
+      }
+    }
+
+    if (description && !Token.isUnresolved(description)) {
+      if (description.length > 256) {
+        throw new Error(
+          `Function description can not be longer than 256 characters but has ${description.length} characters.`,
+        );
+      }
+    }
+
+    const managedPolicies = new Array<iam.IManagedPolicy>();
+    // the arn is in the form of - arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+    managedPolicies.push(
+      iam.ManagedPolicy.fromAwsManagedPolicyName(
+        this,
+        "AWSLambdaBasicExecutionRole",
+        "service-role/AWSLambdaBasicExecutionRole",
+      ),
+    );
+    if (props.networkConfig) {
+      // Policy that will have ENI creation permissions
+      // not sure if time.sleep is necessary?
+      // ref:
+      //  - https://github.com/pulumi/pulumi-aws/issues/2260#issuecomment-1977606509
+      //  - https://github.com/hashicorp/terraform-provider-aws/issues/29828#issuecomment-1693307500
+      managedPolicies.push(
+        iam.ManagedPolicy.fromAwsManagedPolicyName(
+          this,
+          "AWSLambdaVPCAccessExecutionRole",
+          "service-role/AWSLambdaVPCAccessExecutionRole",
+        ),
+      );
+    }
+
+    // TODO: Any concern not scoping the logGroup IAM Permissions?
+    // .allow()
+    // .toCreateLogStream()
+    // .toPutLogEvents()
+    // .on(logGroup.arn, `${logGroup.arn}:log-stream:*`),
+
+    this.role =
+      props.role ||
+      new iam.Role(this, "ServiceRole", {
+        assumedBy: new iam.ServicePrincipal("lambda.amazonaws.com"),
+        managedPolicies,
+      });
+    this.grantPrincipal = this.role;
+    // TODO: Re-add filesystem / localMountPath support
+    // ref: filesystem.config.policies to be added to principal
+    // https://github.com/aws/aws-cdk/blob/v2.160.0/packages/aws-cdk-lib/aws-lambda/lib/function.ts#L949-L965
+
+    for (const statement of props.initialPolicy || []) {
+      this.role.addToPrincipalPolicy(statement);
+    }
+
+    // add support for AWS_CODEGURU Profile env variables...
+    const env = variables || {};
+    for (const [key, value] of Object.entries(env)) {
+      this.addEnvironment(key, value);
+    }
+
+    // DLQ can be either sns.ITopic or sqs.IQueue
+    const dlqTopicOrQueue = this.buildDeadLetterQueue(props);
+    if (dlqTopicOrQueue !== undefined) {
+      if (this.isQueue(dlqTopicOrQueue)) {
+        this.deadLetterQueue = dlqTopicOrQueue;
+      } else {
+        throw new Error("DeadLetterTopic is not supported yet");
+        // this.deadLetterTopic = dlqTopicOrQueue;
+      }
+    }
 
     const logGroup = new cloudwatchLogGroup.CloudwatchLogGroup(
       this,
       "LogGroup",
       {
-        name: `/aws/lambda/${this._functionName}`,
+        name: `/aws/lambda/${functionName}`,
         retentionInDays: logRetentionInDays,
       },
     );
+    this._logGroup = logGroup;
 
-    this.logGroup = logGroup;
-
-    this.role = new FloydServiceRole(this, "ServiceRole", {
-      service: "lambda.amazonaws.com",
-      policyStatements: [
-        new Statement.Logs()
-          .allow()
-          .toCreateLogStream()
-          .toPutLogEvents()
-          .on(logGroup.arn, `${logGroup.arn}:log-stream:*`),
-      ],
-      tags: props.tags,
-    });
-
-    const fnOptions: lambdaFunction.LambdaFunctionConfig = {
-      functionName: this._functionName,
-      description: props.description,
-      role: this.role.arn,
+    this.resource = new lambdaFunction.LambdaFunction(this, "Resource", {
+      functionName,
+      description,
+      role: this.role.roleArn,
       architectures: [
         // This is an array, but maximum length is 1!
         // https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/aws-resource-lambda-function.html#cfn-lambda-function-architectures
         props.architecture?.toString() ?? Architecture.X86_64.toString(),
       ],
       memorySize,
-      timeout,
-      layers,
+      timeout: timeout.toSeconds(),
+      layers, // TODO: Support ILayer with Lazy list of arns
       reservedConcurrentExecutions,
+      // TODO: CDK Sorts environment to match Lambda Hash behaviour
+      // ref: https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-lambda/lib/function.ts#L1467
       environment: {
         variables: Lazy.anyValue({
           produce: (_context: IResolveContext) => {
@@ -374,20 +736,26 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
         }) as any,
       },
       vpcConfig: this.parseVpcConfig(props.networkConfig),
+      loggingConfig: this.getLoggingConfig(this._logGroup.name, props),
       tracingConfig: this.parseTracingConfig(props.tracing ?? Tracing.ACTIVE),
-      deadLetterConfig: this.parseDeadLetterConfig(props.deadLetterQueue),
-      // retryAttempts: 2, // TODO: Add aws_lambda_function_event_invoke_config
+      deadLetterConfig: this.parseDeadLetterConfig(dlqTopicOrQueue),
+      publish: props.publish,
+      // TODO: use logGroup.node.addDependency when logGroup is implemented
       dependsOn: [logGroup],
-    };
+    });
+    this.functionName = this.resource.functionName;
 
-    this.resource = new lambdaFunction.LambdaFunction(
-      this,
-      "Resource",
-      fnOptions,
-    );
+    // make sure any role attachments are added as dependencies for this lambda
+    // this achieved by the CDKTF Aspect on the parent SpecBase
+    this.resource.node.addDependency(this.role);
 
-    for (const [id, event] of Object.entries(props.events || {})) {
-      this.addEventSource(id, event);
+    this.timeout = props.timeout;
+    this.architecture = props.architecture ?? Architecture.X86_64;
+
+    // TODO: Add aws_lambda_provisioned_concurrency_config
+
+    for (const event of props.events || []) {
+      this.addEventSource(event);
     }
 
     // Event Invoke Config
@@ -398,249 +766,26 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
       props.retryAttempts !== undefined
     ) {
       this.configureAsyncInvoke({
-        qualifier: "$LATEST",
-        maximumEventAgeInSeconds: props.maxEventAge?.toSeconds(),
-        maximumRetryAttempts: props.retryAttempts,
-        ...(props.onFailure || props.onSuccess
-          ? {
-              destinationConfig: {
-                ...(props.onFailure
-                  ? { onFailure: { destination: props.onFailure } }
-                  : undefined),
-                ...(props.onSuccess
-                  ? { onSuccess: { destination: props.onSuccess } }
-                  : undefined),
-              },
-            }
-          : undefined),
+        onFailure: props.onFailure,
+        onSuccess: props.onSuccess,
+        maxEventAge: props.maxEventAge,
+        retryAttempts: props.retryAttempts,
       });
     }
 
     this._outputs = {
-      name: this._functionName, // not a token
+      name: this.functionName,
       arn: this.resource.arn,
-      role: this.role.arn,
+      roleArn: this.role.roleArn,
       // only known at synth time
       // explicit `null` required to avoid syntax errors when using stringValue && "undefined"
       url: Lazy.anyValue({
-        produce: () => this._url?.functionUrl ?? null,
+        produce: () => this._url ?? null,
       }),
       defaultSecurityGroup: Lazy.anyValue({
         produce: () => this._securityGroup?.id ?? null,
       }),
     };
-  }
-
-  /**
-   * Optionally create LambdaFunctionVpcConfig
-   */
-  private parseVpcConfig(
-    config?: VpcConfig,
-  ): lambdaFunction.LambdaFunctionVpcConfig | undefined {
-    if (!config) {
-      return undefined;
-    }
-    let securityGroupIds = config.securityGroupIds;
-    if (!securityGroupIds) {
-      this._securityGroup = new securityGroup.SecurityGroup(
-        this,
-        "SecurityGroup",
-        {
-          name: this._functionName,
-          description: this._functionName,
-          vpcId: config.vpcId,
-
-          egress: config.egress ?? [
-            {
-              fromPort: 0,
-              toPort: 0,
-              protocol: "-1",
-              cidrBlocks: ["0.0.0.0/0"],
-              ipv6CidrBlocks: ["::/0"],
-            },
-          ],
-        },
-      );
-      securityGroupIds = [this._securityGroup.id];
-    }
-    // ensure Lambda has permissions to manage ENIs
-    // not sure if time.sleep is still necessary?
-    // ref:
-    //  - https://github.com/pulumi/pulumi-aws/issues/2260#issuecomment-1977606509
-    //  - https://github.com/hashicorp/terraform-provider-aws/issues/29828#issuecomment-1693307500
-    this.role.addPolicyStatements(
-      new Statement.Ec2()
-        .allow()
-        .toCreateNetworkInterface()
-        .toDescribeNetworkInterfaces()
-        .toDeleteNetworkInterface()
-        .toAssignPrivateIpAddresses()
-        .toUnassignPrivateIpAddresses()
-        .onAllResources(),
-    );
-    return {
-      subnetIds: config.subnetIds,
-      ipv6AllowedForDualStack: config.ipv6AllowedForDualStack,
-      securityGroupIds,
-    };
-  }
-
-  // TODO: Support sns.ITopic + sns:Publish topicArn
-  /**
-   * Optionally create LambdaFunctionDeadLetterConfig
-   */
-  private parseDeadLetterConfig(
-    deadLetterQueue?: IQueue,
-  ): lambdaFunction.LambdaFunctionDeadLetterConfig | undefined {
-    if (deadLetterQueue) {
-      this.role.addPolicyStatements(
-        new Statement.Sqs()
-          .allow()
-          .toSendMessage()
-          .on(deadLetterQueue.queueOutputs.arn),
-      );
-      return {
-        targetArn: deadLetterQueue.queueOutputs.arn,
-      };
-    } else {
-      return undefined;
-    }
-  }
-
-  private parseTracingConfig(
-    tracing: Tracing,
-  ): lambdaFunction.LambdaFunctionTracingConfig | undefined {
-    if (tracing === undefined || tracing === Tracing.DISABLED) {
-      return undefined;
-    }
-    this.role.addPolicyStatements(
-      new Statement.Xray()
-        .allow()
-        .toPutTraceSegments()
-        .toPutTelemetryRecords()
-        .onAllResources(),
-    );
-    return {
-      mode: tracing,
-    };
-  }
-
-  public bucketPermissions(
-    bucket: IBucket,
-    access: AwsAccessLevels,
-    objectsKeyPattern: any = "*",
-  ) {
-    //TODO: Add kms permissions if bucket is encrypted
-    //TODO: Manage policy doc length?
-    const s3Permissions = new Statement.S3()
-      .allow()
-      .on(bucket.bucketOutputs.arn, bucket.arnForObjects(objectsKeyPattern));
-    this.addAccessLevels(s3Permissions, access);
-    this.role.addPolicyStatements(s3Permissions);
-  }
-
-  public queuePermissions(queue: IQueue, access: AwsAccessLevels) {
-    //TODO: Add kms permissions if queue is encrypted
-    //TODO: Manage policy doc length?
-    const sqsPermissions = new Statement.Sqs()
-      .allow()
-      .on(queue.queueOutputs.arn);
-    this.addAccessLevels(sqsPermissions, access);
-    this.role.addPolicyStatements(sqsPermissions);
-  }
-
-  public functionInvokePermission(fn: IFunction | string) {
-    // TODO: Handle Lambda version, cross account invokes?
-    const fnArn = typeof fn === "string" ? fn : fn.functionOutputs.arn;
-    this.role.addPolicyStatements(
-      new Statement.Lambda()
-        .allow()
-        .toInvokeAsync()
-        .toInvokeFunction()
-        .on(fnArn),
-    );
-  }
-
-  private addAccessLevels(stmt: Statement.All, access: AwsAccessLevels) {
-    /* eslint-disable no-bitwise */
-    if (access & AwsAccessLevels.LIST) {
-      stmt.allListActions();
-    }
-    if (access & AwsAccessLevels.READ) {
-      stmt.allReadActions();
-    }
-    if (access & AwsAccessLevels.TAGGING) {
-      stmt.allTaggingActions();
-    }
-    if (access & AwsAccessLevels.WRITE) {
-      stmt.allWriteActions();
-    }
-    if (access & AwsAccessLevels.PERMISSION_MANAGEMENT) {
-      stmt.allPermissionManagementActions();
-    }
-    /* eslint-enable no-bitwise */
-  }
-
-  /**
-   * Gives an external source (like an EventBridge Rule, SNS, or S3) permission
-   * to access the Lambda function.
-   */
-  public addPermission(alias: string, permission: PermissionConfig) {
-    this.permissions[alias] = permission;
-  }
-
-  /**
-   * Ensure Lambda function permission is removed
-   */
-  public dropPermission(alias: string) {
-    if (!this.permissions[alias]) {
-      throw new Error(`Permission with id '${alias}' does not exists`);
-    }
-    delete this.permissions[alias];
-  }
-
-  /**
-   * A function URL is a dedicated HTTP(S) endpoint for a Lambda function.
-   */
-  public addUrl(url: UrlConfig) {
-    // TODO: Error if url already exists?
-    this._url = new lambdaFunctionUrl.LambdaFunctionUrl(this, "url", {
-      ...url,
-      functionName: this.resource.arn,
-    });
-  }
-
-  public addEventSource(id: string, source: EventSourceMappingConfig): void {
-    // use crypt.createHash to generate a unique identifier for the event source instead?
-    let eventSource = this._eventSources[id];
-    if (!eventSource) {
-      eventSource = new lambdaEventSourceMapping.LambdaEventSourceMapping(
-        this,
-        id,
-        {
-          ...source,
-          functionName: this.resource.functionName,
-        },
-      );
-      this._eventSources[id] = eventSource;
-    }
-  }
-
-  public configureAsyncInvoke(options: EventInvokeConfig): void {
-    if (this.node.tryFindChild("EventInvokeConfig") !== undefined) {
-      throw new Error(
-        `An EventInvokeConfig has already been configured for the function at ${this.node.path}`,
-      );
-    }
-
-    new lambdaFunctionEventInvokeConfig.LambdaFunctionEventInvokeConfig(
-      this,
-      "EventInvokeConfig",
-      {
-        functionName: this.resource.functionName,
-        ...options,
-      },
-    );
   }
 
   /**
@@ -681,41 +826,212 @@ export class LambdaFunction extends AwsBeaconBase implements IFunction {
     return this;
   }
 
-  /**
-   * Adds resource to the Terraform JSON output at Synth time.
-   *
-   * called by TerraformStack.prepareStack()
-   */
-  public toTerraform(): any {
-    /**
-     * A preparing resolve might add new resources to the stack
-     *
-     * should not add resources if no permissions are defined
-     */
-    if (Object.keys(this.permissions).length === 0) {
-      return {};
-    }
+  public addFunctionUrl(options?: FunctionUrlOptions): FunctionUrl {
+    const endpoint = super.addFunctionUrl(options);
+    this._url = endpoint.url;
+    return endpoint;
+  }
 
-    for (const [id, permission] of Object.entries(this.permissions)) {
-      if (this.node.tryFindChild(id)) continue; // ignore if already generated
-      const permissionRes = new lambdaPermission.LambdaPermission(this, id, {
-        ...permission,
-        functionName: this.resource.functionName,
-      });
-      if (permission.dependees !== undefined) {
-        // node.addDependency doesn't work - see: https://github.com/hashicorp/terraform-cdk/issues/785
-        // permissionRes.node.addDependency(...permission.dependees);
-        for (const dependee of permission.dependees) {
-          if (dependee.dependsOn !== undefined) {
-            dependee.dependsOn.push(permissionRes.fqn);
-          } else {
-            dependee.dependsOn = [permissionRes.fqn];
-          }
-        }
+  /**
+   * Get Logging Config propety for the function.
+   * This method returns the function LoggingConfig Property if the property is set on the
+   * function and undefined if not.
+   */
+  private getLoggingConfig(
+    logGroupName: string,
+    props: FunctionProps,
+  ): lambdaFunction.LambdaFunctionLoggingConfig | undefined {
+    if (props.applicationLogLevel || props.systemLogLevel) {
+      if (props.loggingFormat !== LoggingFormat.JSON) {
+        throw new Error(
+          `To use ApplicationLogLevel and/or SystemLogLevel you must set LoggingFormat to '${LoggingFormat.JSON}', got '${props.loggingFormat}'.`,
+        );
       }
     }
-    return {};
+
+    let loggingConfig: lambdaFunction.LambdaFunctionLoggingConfig;
+    if (props.loggingFormat) {
+      loggingConfig = {
+        logFormat: props.loggingFormat,
+        systemLogLevel: props.systemLogLevel,
+        applicationLogLevel: props.applicationLogLevel,
+        logGroup: logGroupName,
+      };
+      return loggingConfig;
+    }
+    return undefined;
   }
+
+  /**
+   * Defines an alias for this function.
+   *
+   * The alias will automatically be updated to point to the latest version of
+   * the function as it is being updated during a deployment.
+   *
+   * ```ts
+   * declare const fn: compute.LambdaFunction;
+   *
+   * fn.addAlias('Live');
+   *
+   * // Is equivalent to
+   *
+   * new compute.Alias(this, 'AliasLive', {
+   *   aliasName: 'Live',
+   *   version: fn.version,
+   * });
+   * ```
+   *
+   * @param aliasName The name of the alias
+   * @param options Alias options
+   */
+  public addAlias(aliasName: string, options?: AliasOptions): Alias {
+    return addAlias(this, this, this.version, aliasName, options);
+  }
+
+  /**
+   * Optionally create LambdaFunctionVpcConfig
+   */
+  private parseVpcConfig(
+    config?: VpcConfig,
+  ): lambdaFunction.LambdaFunctionVpcConfig | undefined {
+    if (!config) {
+      return undefined;
+    }
+    let securityGroupIds = config.securityGroupIds;
+    if (!securityGroupIds) {
+      this._securityGroup = new securityGroup.SecurityGroup(
+        this,
+        "SecurityGroup",
+        {
+          name: this.functionName,
+          description: this.functionName,
+          vpcId: config.vpcId,
+
+          egress: config.egress ?? [
+            {
+              fromPort: 0,
+              toPort: 0,
+              protocol: "-1",
+              cidrBlocks: ["0.0.0.0/0"],
+              ipv6CidrBlocks: ["::/0"],
+            },
+          ],
+        },
+      );
+      securityGroupIds = [this._securityGroup.id];
+    }
+    return {
+      subnetIds: config.subnetIds,
+      ipv6AllowedForDualStack: config.ipv6AllowedForDualStack,
+      securityGroupIds,
+    };
+  }
+
+  private isQueue(deadLetterQueue: IQueue): deadLetterQueue is IQueue {
+    return (<IQueue>deadLetterQueue).queueArn !== undefined;
+  }
+
+  private buildDeadLetterQueue(props: FunctionProps): IQueue | undefined {
+    // | sns.ITopic
+    if (
+      !props.deadLetterQueue &&
+      !props.deadLetterQueueEnabled
+      // && !props.deadLetterTopic
+    ) {
+      return undefined;
+    }
+    if (props.deadLetterQueue && props.deadLetterQueueEnabled === false) {
+      throw Error(
+        "deadLetterQueue defined but deadLetterQueueEnabled explicitly set to false",
+      );
+    }
+    // if (
+    //   props.deadLetterTopic &&
+    //   (props.deadLetterQueue || props.deadLetterQueueEnabled !== undefined)
+    // ) {
+    //   throw new Error(
+    //     "deadLetterQueue and deadLetterTopic cannot be specified together at the same time",
+    //   );
+    // }
+
+    let deadLetterQueue: IQueue; // | ITopic;
+    // if (props.deadLetterTopic) {
+    //   deadLetterQueue = props.deadLetterTopic;
+    //   this.addToRolePolicy(
+    //     new iam.PolicyStatement({
+    //       actions: ["sns:Publish"],
+    //       resources: [deadLetterQueue.topicArn],
+    //     }),
+    //   );
+    // } else {
+    deadLetterQueue =
+      props.deadLetterQueue ||
+      new Queue(this, "DeadLetterQueue", {
+        messageRetentionSeconds: Duration.days(14).toSeconds(),
+      });
+    this.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["sqs:SendMessage"],
+        resources: [deadLetterQueue.queueArn],
+      }),
+    );
+    // }
+
+    return deadLetterQueue;
+  }
+
+  // TODO: Support sns.ITopic + sns:Publish topicArn
+  /**
+   * Optionally create LambdaFunctionDeadLetterConfig
+   */
+  private parseDeadLetterConfig(
+    deadLetterQueue?: IQueue, // | sns.ITopic
+  ): lambdaFunction.LambdaFunctionDeadLetterConfig | undefined {
+    if (deadLetterQueue) {
+      // this.isQueue(deadLetterQueue) ? deadLetterQueue.queueArn : ...
+      return {
+        targetArn: deadLetterQueue.queueArn,
+      };
+    } else {
+      return undefined;
+    }
+  }
+
+  private parseTracingConfig(
+    tracing: Tracing,
+  ): lambdaFunction.LambdaFunctionTracingConfig | undefined {
+    if (tracing === undefined || tracing === Tracing.DISABLED) {
+      return undefined;
+    }
+
+    this.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["xray:PutTraceSegments", "xray:PutTelemetryRecords"],
+        resources: ["*"],
+      }),
+    );
+
+    return {
+      mode: tracing,
+    };
+  }
+}
+
+/**
+ * Given an opaque (token) ARN, returns a TF expression that extracts the function
+ * name from the ARN.
+ *
+ * Function ARNs look like this:
+ *
+ *   arn:aws:lambda:region:account-id:function:function-name
+ *
+ * ..which means that in order to extract the `function-name` component from the ARN, we can
+ * split the ARN using ":" and select the component in index 6.
+ *
+ * @returns `element(split(':', arn), 6)`
+ */
+function extractNameFromArn(arn: string) {
+  return Fn.element(Fn.split(":", arn), 6);
 }
 
 /**
@@ -736,4 +1052,97 @@ export enum Tracing {
    * Lambda will not trace any request.
    */
   DISABLED = "Disabled",
+}
+
+/**
+ * Lambda service will automatically captures system logs about function invocation
+ * generated by the Lambda service (known as system logs) and sends these logs to a
+ * default CloudWatch log group named after the Lambda function.
+ */
+export enum SystemLogLevel {
+  /**
+   * Lambda will capture only logs at info level.
+   */
+  INFO = "INFO",
+  /**
+   * Lambda will capture only logs at debug level.
+   */
+  DEBUG = "DEBUG",
+  /**
+   * Lambda will capture only logs at warn level.
+   */
+  WARN = "WARN",
+}
+
+/**
+ * Lambda service automatically captures logs generated by the function code
+ * (known as application logs) and sends these logs to a default CloudWatch
+ * log group named after the Lambda function.
+ */
+export enum ApplicationLogLevel {
+  /**
+   * Lambda will capture only logs at info level.
+   */
+  INFO = "INFO",
+  /**
+   * Lambda will capture only logs at debug level.
+   */
+  DEBUG = "DEBUG",
+  /**
+   * Lambda will capture only logs at warn level.
+   */
+  WARN = "WARN",
+  /**
+   * Lambda will capture only logs at trace level.
+   */
+  TRACE = "TRACE",
+  /**
+   * Lambda will capture only logs at error level.
+   */
+  ERROR = "ERROR",
+  /**
+   * Lambda will capture only logs at fatal level.
+   */
+  FATAL = "FATAL",
+}
+
+/**
+ * This field takes in 2 values either Text or JSON. By setting this value to Text,
+ * will result in the current structure of logs format, whereas, by setting this value to JSON,
+ * Lambda will print the logs as Structured JSON Logs, with the corresponding timestamp and log level
+ * of each event. Selecting ‘JSON’ format will only allow customer’s to have different log level
+ * Application log level and the System log level.
+ */
+export enum LoggingFormat {
+  /**
+   * Lambda Logs text format.
+   */
+  TEXT = "Text",
+  /**
+   * Lambda structured logging in Json format.
+   */
+  JSON = "JSON",
+}
+
+/**
+ * A destination configuration
+ */
+export interface DlqDestinationConfig {
+  /**
+   * The Amazon Resource Name (ARN) of the destination resource
+   */
+  readonly destination: string;
+}
+
+/**
+ * A DLQ for an event source
+ */
+export interface IEventSourceDlq {
+  /**
+   * Returns the DLQ destination config of the DLQ
+   */
+  bind(
+    target: IEventSourceMapping,
+    targetHandler: IFunction,
+  ): DlqDestinationConfig;
 }

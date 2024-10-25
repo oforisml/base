@@ -2,13 +2,7 @@ import path from "path";
 import { Testing } from "cdktf";
 import "cdktf/lib/testing/adapters/jest";
 import { Duration } from "../../../src/";
-import {
-  compute,
-  storage,
-  notify,
-  AwsSpec,
-  AwsAccessLevels,
-} from "../../../src/aws";
+import { compute, storage, notify, AwsSpec } from "../../../src/aws";
 
 const environmentName = "Test";
 const gridUUID = "123e4567-e89b-12d3";
@@ -27,7 +21,7 @@ describe("Function with Storage", () => {
     const bucket = new storage.Bucket(spec, "HelloWorldBucket", {
       namePrefix: "hello-world",
     });
-    fn.bucketPermissions(bucket, AwsAccessLevels.READ);
+    bucket.grantRead(fn);
     // THEN
     spec.prepareStack(); // required to add last minute resources to the stack
     expect(Testing.synth(spec)).toMatchSnapshot();
@@ -44,18 +38,8 @@ describe("Function with event rules", () => {
     });
     const rule = new notify.Rule(spec, "HelloWorldRule", {
       schedule: notify.Schedule.rate(Duration.days(1)),
-      targets: {
-        follower: {
-          arn: fn.functionOutputs.arn,
-        },
-      },
     });
-    fn.addPermission("InvokeByCloudwatch", {
-      principal: "events.amazonaws.com",
-      action: "lambda:InvokeFunction",
-      sourceArn: rule.ruleOutputs.arn,
-      dependees: [rule.resource],
-    });
+    rule.addTarget(new notify.targets.LambdaFunction(fn));
     // THEN
     spec.prepareStack(); // required to add last minute resources to the stack
     expect(Testing.synth(spec)).toMatchSnapshot();

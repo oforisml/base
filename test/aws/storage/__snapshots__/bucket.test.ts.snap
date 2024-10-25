@@ -19,8 +19,8 @@ exports[`Bucket Should support multiple sources 1`] = `
       "description": "Outputs for Test-HelloWorld",
       "value": {
         "arn": "\${aws_s3_bucket.HelloWorld_7964D1E8.arn}",
-        "bucketName": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
         "domainName": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket_domain_name}",
+        "name": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
         "regionalDomainName": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket_regional_domain_name}",
         "websiteDomainName": "\${aws_s3_bucket_website_configuration.HelloWorld_WebsiteConfig_72ADC681.website_domain}",
         "websiteUrl": "\${aws_s3_bucket_website_configuration.HelloWorld_WebsiteConfig_72ADC681.website_endpoint}"
@@ -37,7 +37,7 @@ exports[`Bucket Should support multiple sources 1`] = `
   "resource": {
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "bucket_prefix": "hello-world-testspechelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
           "et:grid:EnvironmentName": "Test",
@@ -138,6 +138,29 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
         "provider": "aws"
       }
     },
+    "aws_iam_policy_document": {
+      "HelloWorld_Policy_Document_6894C6E0": {
+        "statement": [
+          {
+            "actions": [
+              "s3:GetObject"
+            ],
+            "effect": "Allow",
+            "principals": [
+              {
+                "identifiers": [
+                  "*"
+                ],
+                "type": "AWS"
+              }
+            ],
+            "resources": [
+              "\${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*"
+            ]
+          }
+        ]
+      }
+    },
     "aws_partition": {
       "Partitition": {
         "provider": "aws"
@@ -154,7 +177,7 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
   "resource": {
     "aws_s3_bucket": {
       "HelloWorld_7964D1E8": {
-        "bucket_prefix": "123e4567-e89b-12d3-hello-world",
+        "bucket_prefix": "hello-world-testspechelloworld",
         "tags": {
           "Name": "Test-HelloWorld",
           "et:grid:EnvironmentName": "Test",
@@ -181,12 +204,9 @@ exports[`Bucket Should synth and match SnapShot 1`] = `
       }
     },
     "aws_s3_bucket_policy": {
-      "HelloWorld_Policy_351F392A": {
+      "HelloWorld_Policy_9E56801E": {
         "bucket": "\${aws_s3_bucket.HelloWorld_7964D1E8.bucket}",
-        "depends_on": [
-          "aws_s3_bucket_public_access_block.HelloWorld_PublicAccessBlock_8B1865DA"
-        ],
-        "policy": "{\\"Version\\":\\"2012-10-17\\",\\"Statement\\":[{\\"Action\\":\\"s3:GetObject\\",\\"Resource\\":\\"\${aws_s3_bucket.HelloWorld_7964D1E8.arn}/*\\",\\"Effect\\":\\"Allow\\",\\"Principal\\":{\\"AWS\\":[\\"*\\"]}}]}"
+        "policy": "\${data.aws_iam_policy_document.HelloWorld_Policy_Document_6894C6E0.json}"
       }
     },
     "aws_s3_bucket_public_access_block": {

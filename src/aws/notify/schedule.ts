@@ -1,4 +1,5 @@
 // https://github.com/aws/aws-cdk/blob/v2.156.0/packages/aws-cdk-lib/aws-events/lib/schedule.ts
+import { Annotations } from "cdktf";
 import { Construct } from "constructs";
 import { Duration } from "../..";
 
@@ -79,13 +80,13 @@ export abstract class Schedule {
 
     return new (class extends Schedule {
       public readonly expressionString: string = `cron(${minute} ${hour} ${day} ${month} ${weekDay} ${year})`;
-      public _bind(_scope: Construct) {
-        // if (!options.minute) {
-        //   Annotations.of(scope).addWarningV2(
-        //     "@aws-cdk/aws-events:scheduleWillRunEveryMinute",
-        //     "cron: If you don't pass 'minute', by default the event runs every minute. Pass 'minute: '*'' if that's what you intend, or 'minute: 0' to run once per hour instead.",
-        //   );
-        // }
+      public _bind(scope: Construct) {
+        if (!options.minute) {
+          // "@aws-cdk/aws-events:scheduleWillRunEveryMinute",
+          Annotations.of(scope).addWarning(
+            "cron: If you don't pass 'minute', by default the event runs every minute. Pass 'minute: '*'' if that's what you intend, or 'minute: 0' to run once per hour instead.",
+          );
+        }
         return new LiteralSchedule(this.expressionString);
       }
     })();

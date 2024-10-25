@@ -14,8 +14,17 @@ describe("Queue", () => {
     // GIVEN
     const spec = getAwsSpec();
     // WHEN
+    new notify.Queue(spec, "HelloWorld");
+    // THEN
+    spec.prepareStack(); // may generate additional resources
+    expect(Testing.synth(spec)).toMatchSnapshot();
+  });
+  test("Should synth and match SnapShot with prefix", () => {
+    // GIVEN
+    const spec = getAwsSpec();
+    // WHEN
     new notify.Queue(spec, "HelloWorld", {
-      nameSuffix: "hello-world",
+      namePrefix: "hello-world",
       // encryption: QueueEncryption.KMS_MANAGED, //TODO: Re-add KMS encryption
       messageRetentionSeconds: Duration.days(14).toSeconds(),
       visibilityTimeoutSeconds: Duration.minutes(15).toSeconds(),
@@ -51,7 +60,7 @@ describe("Queue", () => {
     const spec = getAwsSpec();
     // WHEN
     new notify.Queue(spec, "Queue", {
-      nameSuffix: "queue.fifo",
+      namePrefix: "queue.fifo",
       // encryption: QueueEncryption.KMS_MANAGED, //TODO: Re-add KMS encryption
       messageRetentionSeconds: Duration.days(14).toSeconds(),
       visibilityTimeoutSeconds: Duration.minutes(15).toSeconds(),
