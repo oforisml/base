@@ -1,6 +1,7 @@
 export * from "./archive";
 export * from "./event-bus";
 export * from "./event-pattern";
+export * from "./connection";
 export * from "./input";
 export * from "./on-event-options";
 export * from "./queue-policy";

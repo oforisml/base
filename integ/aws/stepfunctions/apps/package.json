@@ -1,0 +1,17 @@
+{
+  "name": "integ-aws-stepfunctions",
+  "type": "module",
+  "scripts": {
+    "call-aws-service": "bun run ./call-aws-service.ts"
+  },
+  "dependencies": {
+    "cdktf": "^0.20.8",
+    "constructs": "^10.3.0",
+    "@cdktf/provider-aws": "^19.24.1",
+    "@types/aws-lambda": "^8.10.76"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.3",
+    "typescript": "5.4.5"
+  }
+}
