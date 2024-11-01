@@ -64,7 +64,7 @@ for (let i = 0; i < azCount; i++) {
       subnetIds: [network.privateSubnets[i].subnetId],
     },
     registerOutputs: true,
-    outputName: "private_fetch_ip_" + i,
+    outputName: "fetch_ip_private" + i,
   });
   new aws.compute.NodejsFunction(stack, `DataFetchIp${i}`, {
     path: path.join(__dirname, "handlers", "fetch-ip", "index.ts"),
@@ -73,7 +73,7 @@ for (let i = 0; i < azCount; i++) {
       subnetIds: [network.dataSubnets[i].subnetId],
     },
     registerOutputs: true,
-    outputName: "data_fetch_ip_" + i,
+    outputName: "fetch_ip_data" + i,
   });
 }
 

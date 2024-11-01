@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"strconv"
-	"strings"
 
 	"github.com/aws/aws-sdk-go-v2/config"
 
@@ -14,6 +13,7 @@ import (
 	"github.com/aws/aws-sdk-go-v2/service/cloudfront/types"
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/testing"
+	"github.com/hashicorp/go-multierror"
 	"github.com/stretchr/testify/require"
 )
 
@@ -24,7 +24,7 @@ type CloudFrontTestFunctionResult struct {
 	// structure of the event object, see [Event object structure]in the Amazon CloudFront Developer Guide.
 	//
 	// [Event object structure]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/functions-event-structure.html
-	Output *map[string]interface{}
+	Output map[string]interface{}
 	// Contains the log lines that the function wrote (if any) when running the test.
 	ExecutionLogs []string
 }
@@ -32,7 +32,7 @@ type CloudFrontTestFunctionResult struct {
 const invalidFunctionErrorPrefix = "The CloudFront function associated with the CloudFront distribution is invalid or could not run. Error: "
 
 // responseValidator is a function that validates the response of a CloudFront function test.
-type responseValidator func(*CloudFrontTestFunctionResult) (bool, *string)
+type responseValidator func(*CloudFrontTestFunctionResult) error
 
 // Tests a CloudFront function.
 //
@@ -50,43 +50,38 @@ type responseValidator func(*CloudFrontTestFunctionResult) (bool, *string)
 //
 // [Testing functions]: https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/managing-functions.html#test-function
 func TestCloudFrontFunction(t testing.TestingT, name string, stage string, event CloudFrontFunctionEvent, expectedError string, expectedOutput *map[string]interface{}) error {
-	validateResponse := responseValidator(func(r *CloudFrontTestFunctionResult) (bool, *string) {
-		failures := []string{}
+	validateResponse := responseValidator(func(r *CloudFrontTestFunctionResult) error {
+		var combinedErr error
 		gotError := aws.ToString(r.ErrorMessage)
 		if gotError != expectedError {
-			failures = append(failures, fmt.Sprintf("Got Error :%s\nWant Error:%s", gotError, expectedError))
+			combinedErr = multierror.Append(combinedErr, fmt.Errorf("got Error :%s\nWant Error:%s", gotError, expectedError))
 		}
 
 		if expectedOutput != nil {
-			expectedOutputBytes, _ := json.MarshalIndent(*r.Output, "", "  ")
+			expectedOutputBytes, _ := json.MarshalIndent(r.Output, "", "  ")
 			if r.Output == nil {
-				failures = append(failures, fmt.Sprintf("Got nil Output\nWant Output:%v", string(expectedOutputBytes)))
+				combinedErr = multierror.Append(combinedErr, fmt.Errorf("got nil Output\nWant Output:%v", string(expectedOutputBytes)))
 			} else {
-				prettyPrint, err := PrettyPrintBeforeAfter(*r.Output, *expectedOutput)
+				prettyPrint, err := PrettyPrintBeforeAfter(r.Output, *expectedOutput)
 				if err != nil {
-					failures = append(failures, fmt.Sprintf("Error matching expected Output:%v", err))
+					combinedErr = multierror.Append(combinedErr, fmt.Errorf("error matching expected Output:%v", err))
 				}
 				if prettyPrint != "" {
-					failures = append(failures, fmt.Sprintf("Expected Output mismatch (-got, +want):%s", prettyPrint))
+					combinedErr = multierror.Append(combinedErr, fmt.Errorf("expected Output mismatch (-got, +want):%s", prettyPrint))
 				}
 			}
 		} else {
 			if r.Output != nil {
-				outputBytes, _ := json.MarshalIndent(*r.Output, "", "  ")
-				failures = append(failures, fmt.Sprintf("Got Output:%v\nWant nil Output", string(outputBytes)))
+				outputBytes, _ := json.MarshalIndent(r.Output, "", "  ")
+				combinedErr = multierror.Append(combinedErr, fmt.Errorf("got Output:%v\nWant nil Output", string(outputBytes)))
 			}
 		}
-
-		if len(failures) > 0 {
-			failureMessage := strings.Join(failures, "\n")
-			return false, &failureMessage
-		}
-		return true, nil
+		return combinedErr
 	})
 	return TestCloudFrontFunctionWithCustomValidation(t, name, stage, event, validateResponse)
 }
 
-// TestCloudFrontFunctionWithCustomValidation performs a Function test and validate the response.
+// TestCloudFrontFunctionWithCustomValidation performs a Function test and validate the response. Fails the test if there is an error.
 func TestCloudFrontFunctionWithCustomValidation(t testing.TestingT, name string, stage string, event CloudFrontFunctionEvent, validateResponse responseValidator) error {
 	functionStage := assertFunctionStage(t, stage)
 	err := TestCloudFrontFunctionWithCustomValidationE(t, name, functionStage, event, validateResponse)
@@ -102,16 +97,16 @@ func TestCloudFrontFunctionWithCustomValidationE(t testing.TestingT, name string
 	}
 	// log utilization for information purposes
 	logger.Log(t, fmt.Sprintf("CloudFront Function Utilization: (%d%%)", response.Utilization))
-	if ok, failures := validateResponse(response); !ok {
+	if err := validateResponse(response); err != nil {
 		return CloudFrontFunctionValidationFailed{
 			FunctionName: name + ":" + string(stage),
-			Failures:     failures,
+			Failures:     err,
 		}
 	}
 	return nil
 }
 
-// TestCloudFrontFunctionE performs a Function test and validate the response.
+// TestCloudFrontFunctionE performs a Function test and validates the response.
 func TestCloudFrontFunctionE(t testing.TestingT, name string, stage types.FunctionStage, event CloudFrontFunctionEvent) (*CloudFrontTestFunctionResult, error) {
 	ctx := context.TODO()
 
@@ -197,13 +192,12 @@ func parseTestResult(testResult *types.TestResult) (*CloudFrontTestFunctionResul
 			return &result, fmt.Errorf("JSON decode error: %w", err)
 		}
 	}
+	result.Output = make(map[string]interface{})
 	if output != nil {
 		outputMap, ok := output.(map[string]interface{})
 		if ok {
-			if len(outputMap) == 0 {
-				result.Output = nil
-			} else {
-				result.Output = &outputMap
+			if len(outputMap) != 0 {
+				result.Output = outputMap
 			}
 		}
 	}

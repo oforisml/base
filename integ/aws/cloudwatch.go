@@ -1,12 +1,14 @@
 package aws
 
 import (
+	"context"
 	"fmt"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/cloudwatchevents"
-	"github.com/aws/aws-sdk-go/service/cloudwatchlogs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchevents"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchevents/types"
+	"github.com/aws/aws-sdk-go-v2/service/cloudwatchlogs"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/retry"
 	"github.com/gruntwork-io/terratest/modules/testing"
@@ -79,7 +81,7 @@ func FilterLogEventsE(t testing.TestingT, awsRegion string, logGroupName string)
 		return nil, err
 	}
 
-	output, err := client.FilterLogEvents(&cloudwatchlogs.FilterLogEventsInput{
+	output, err := client.FilterLogEvents(context.Background(), &cloudwatchlogs.FilterLogEventsInput{
 		LogGroupName: aws.String(logGroupName),
 	})
 
@@ -105,11 +107,11 @@ func DescribeEventRule(t testing.TestingT, awsRegion string, ruleName string) *C
 }
 
 type CloudwatchEventsRuleInfo struct {
-	Name               string // The name of the rule.
-	Description        string // The description of the rule.
-	State              string // Specifies whether the rule is enabled or disabled.
-	EventPattern       string // The event pattern.
-	ScheduleExpression string // The scheduling expression. For example, "cron(0 20 * * ? *)", "rate(5 minutes)".
+	Name               string          // The name of the rule.
+	Description        string          // The description of the rule.
+	State              types.RuleState // Specifies whether the rule is enabled or disabled.
+	EventPattern       string          // The event pattern.
+	ScheduleExpression string          // The scheduling expression. For example, "cron(0 20 * * ? *)", "rate(5 minutes)".
 }
 
 // DescribeEventRuleE returns the details of the specified rule.
@@ -119,7 +121,7 @@ func DescribeEventRuleE(t testing.TestingT, awsRegion string, ruleName string) (
 		return nil, err
 	}
 
-	output, err := client.DescribeRule(&cloudwatchevents.DescribeRuleInput{
+	output, err := client.DescribeRule(context.Background(), &cloudwatchevents.DescribeRuleInput{
 		Name: aws.String(ruleName),
 	})
 
@@ -127,17 +129,17 @@ func DescribeEventRuleE(t testing.TestingT, awsRegion string, ruleName string) (
 		return nil, err
 	}
 	ruleInfo := &CloudwatchEventsRuleInfo{
-		Name:               aws.StringValue(output.Name),
-		Description:        aws.StringValue(output.Description),
-		State:              aws.StringValue(output.State),
-		EventPattern:       aws.StringValue(output.EventPattern),
-		ScheduleExpression: aws.StringValue(output.ScheduleExpression),
+		Name:               aws.ToString(output.Name),
+		Description:        aws.ToString(output.Description),
+		State:              output.State,
+		EventPattern:       aws.ToString(output.EventPattern),
+		ScheduleExpression: aws.ToString(output.ScheduleExpression),
 	}
 	return ruleInfo, nil
 }
 
 // NewCloudWatchEventsClient creates a new CloudWatch Events client.
-func NewCloudWatchEventsClient(t testing.TestingT, region string) *cloudwatchevents.CloudWatchEvents {
+func NewCloudWatchEventsClient(t testing.TestingT, region string) *cloudwatchevents.Client {
 	client, err := NewCloudWatchEventsClientE(t, region)
 	if err != nil {
 		t.Fatal(err)
@@ -146,10 +148,10 @@ func NewCloudWatchEventsClient(t testing.TestingT, region string) *cloudwatcheve
 }
 
 // NewCloudWatchEventsClientE creates a new CloudWatch Logs client.
-func NewCloudWatchEventsClientE(t testing.TestingT, region string) (*cloudwatchevents.CloudWatchEvents, error) {
+func NewCloudWatchEventsClientE(t testing.TestingT, region string) (*cloudwatchevents.Client, error) {
 	sess, err := terratestaws.NewAuthenticatedSession(region)
 	if err != nil {
 		return nil, err
 	}
-	return cloudwatchevents.New(sess), nil
+	return cloudwatchevents.NewFromConfig(*sess), nil
 }

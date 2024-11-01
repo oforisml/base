@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 
 	"github.com/aws/aws-sdk-go-v2/service/sfn"
@@ -16,31 +17,36 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-// StartStateMachineExecution starts a new execution of the specified state machine and returns the execution ARN. This will fail the
+// StartSfnExecution starts a new execution of the specified state machine and returns the execution ARN. This will fail the
 // test if there is an error.
-func StartStateMachineExecution(t testing.TestingT, awsRegion string, stateMachineArn string, input interface{}) *string {
-	executionArn, err := StartStateMachineExecutionE(t, awsRegion, stateMachineArn, input)
+func StartSfnExecution(t testing.TestingT, awsRegion string, stateMachineArn string, input interface{}) *string {
+	executionArn, err := StartSfnExecutionE(t, awsRegion, stateMachineArn, input)
 	require.NoError(t, err)
 	return executionArn
 }
 
-// StartStateMachineExecutionE starts a new execution of the specified state machine and returns the execution ARN.
-func StartStateMachineExecutionE(t testing.TestingT, awsRegion string, stateMachineArn string, input interface{}) (*string, error) {
+// StartSfnExecutionE starts a new execution of the specified state machine and returns the execution ARN.
+func StartSfnExecutionE(t testing.TestingT, awsRegion string, stateMachineArn string, input interface{}) (*string, error) {
 	logger.Log(t, fmt.Sprintf("Starting execution for state machine %s with input %s", stateMachineArn, input))
+
+	var inputStrPtr *string
+	if input != nil {
+		inputJson, err := json.Marshal(input)
+		if err != nil {
+			return nil, err
+		}
+		inputStr := string(inputJson)
+		inputStrPtr = &inputStr
+	}
 
 	sfnClient, err := NewSfnclientE(t, awsRegion)
 	if err != nil {
 		return nil, err
 	}
 
-	inputJson, err := json.Marshal(input)
-	if err != nil {
-		return nil, err
-	}
-	inputStr := string(inputJson)
 	res, err := sfnClient.StartExecution(context.TODO(), &sfn.StartExecutionInput{
 		StateMachineArn: &stateMachineArn,
-		Input:           &inputStr,
+		Input:           inputStrPtr,
 	})
 	if err != nil {
 		return nil, err
@@ -50,13 +56,13 @@ func StartStateMachineExecutionE(t testing.TestingT, awsRegion string, stateMach
 	return res.ExecutionArn, nil
 }
 
-func DescribeStateMachineExecution(t testing.TestingT, awsRegion string, executionArn string) *sfn.DescribeExecutionOutput {
-	res, err := DescribeStateMachineExecutionE(t, awsRegion, executionArn)
+func DescribeSfnExecution(t testing.TestingT, awsRegion string, executionArn string) *sfn.DescribeExecutionOutput {
+	res, err := DescribeSfnExecutionE(t, awsRegion, executionArn)
 	require.NoError(t, err)
 	return res
 }
 
-func DescribeStateMachineExecutionE(t testing.TestingT, awsRegion string, executionArn string) (*sfn.DescribeExecutionOutput, error) {
+func DescribeSfnExecutionE(t testing.TestingT, awsRegion string, executionArn string) (*sfn.DescribeExecutionOutput, error) {
 	sfnClient, err := NewSfnclientE(t, awsRegion)
 	if err != nil {
 		return nil, err
@@ -67,55 +73,92 @@ func DescribeStateMachineExecutionE(t testing.TestingT, awsRegion string, execut
 	})
 }
 
-// WaitForStateMachineExecution waits for the specified execution to reach the desired status.
+// ExecutionOutput contains the result of the SateMachine Execution.
+type SfnExecutionOutput struct {
+	// The current status of the execution.
+	Status types.ExecutionStatus
+	// The cause string if the state machine execution failed.
+	Cause string
+	// The error string if the state machine execution failed.
+	Error string
+	// The JSON output data of the execution. Length constraints apply to the payload
+	// size, and are expressed as bytes in UTF-8 encoding.
+	//
+	// This field is set only if the execution succeeds. If the execution fails, this
+	// field is the string Zero value ("").
+	Output string
+}
+
+// WaitForSfnExecutionStatus waits for the specified execution to reach the desired status.
 // This will fail the test if there is an error.
-func WaitForStateMachineExecution(
+//
+// Executions of an EXPRESS state machine aren't supported by DescribeExecution
+// unless a Map Run dispatched them.
+func WaitForSfnExecutionStatus(
 	t testing.TestingT,
 	awsRegion string,
 	executionArn string,
 	status types.ExecutionStatus,
 	maxRetries int,
 	sleepBetweenRetries time.Duration,
-) *sfn.DescribeExecutionOutput {
-	res, err := WaitForStateMachineExecutionE(t, awsRegion, executionArn, status, maxRetries, sleepBetweenRetries)
+) *SfnExecutionOutput {
+	res, err := WaitForSfnExecutionE(t, awsRegion, executionArn, status, maxRetries, sleepBetweenRetries)
 	require.NoError(t, err)
 	return res
 }
 
-// WaitForStateMachineExecutionE waits for the specified execution to reach the desired status. this will throw error on timeout.
-func WaitForStateMachineExecutionE(
+// WaitForSfnExecutionE waits for the specified execution to reach the desired status. this will throw error on timeout or non-retryable Errors.
+func WaitForSfnExecutionE(
 	t testing.TestingT,
 	awsRegion string,
 	executionArn string,
 	status types.ExecutionStatus,
 	maxRetries int,
 	sleepBetweenRetries time.Duration,
-) (*sfn.DescribeExecutionOutput, error) {
-	var output *sfn.DescribeExecutionOutput
+) (*SfnExecutionOutput, error) {
+
+	retryableErrors := map[string]string{
+		// "ExecutionDoesNotExist":       "ExecutionDoesNotExist",
+		"bad status: RUNNING":         "bad status: RUNNING",
+		"bad status: PENDING_REDRIVE": "bad status: PENDING_REDRIVE",
+	}
+
 	description := fmt.Sprintf("Waiting for %s to reach status %s", executionArn, status)
-	_, err := retry.DoWithRetryE(
+
+	result := &SfnExecutionOutput{}
+	_, err := retry.DoWithRetryableErrorsE(
 		t,
 		description,
+		retryableErrors,
 		maxRetries,
 		sleepBetweenRetries,
 		func() (string, error) {
-			result, err := DescribeStateMachineExecutionE(t, awsRegion, executionArn)
+			resp, err := DescribeSfnExecutionE(t, awsRegion, executionArn)
 			if err != nil {
 				return "", err
 			}
 
-			if result.Status == status {
-				output = result
-				return "Execution reached desired status", nil
+			result.Status = resp.Status
+			result.Cause = aws.ToString(resp.Cause)
+			result.Error = aws.ToString(resp.Error)
+			result.Output = aws.ToString(resp.Output)
+
+			if resp.Status == status {
+				return "", nil
 			} else {
-				return "", fmt.Errorf("execution is still in status %s", result.Status)
+				return "", fmt.Errorf("bad status: %s", resp.Status)
 			}
 		},
 	)
+
 	if err != nil {
-		return nil, err
+		if actualErr, ok := err.(retry.FatalError); ok {
+			return result, actualErr.Underlying
+		}
+		return result, fmt.Errorf("unexpected error: %v", err)
 	}
-	return output, nil
+
+	return result, nil
 }
 
 // NewSfnclient returns a client for StepFunctions. This will fail the test and

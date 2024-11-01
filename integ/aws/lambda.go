@@ -1,11 +1,13 @@
 package aws
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/lambda"
+	"github.com/aws/aws-sdk-go-v2/service/lambda/types"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/testing"
 	"github.com/stretchr/testify/require"
@@ -84,7 +86,7 @@ func InvokeFunctionWithParamsE(t testing.TestingT, region, functionName string, 
 
 	invokeInput := &lambda.InvokeInput{
 		FunctionName:   &functionName,
-		InvocationType: &invocationType,
+		InvocationType: types.InvocationType(invocationType),
 	}
 
 	if input.Payload != nil {
@@ -95,7 +97,7 @@ func InvokeFunctionWithParamsE(t testing.TestingT, region, functionName string, 
 		invokeInput.Payload = payloadJson
 	}
 
-	out, err := lambdaClient.Invoke(invokeInput)
+	out, err := lambdaClient.Invoke(context.Background(), invokeInput)
 	if err != nil {
 		return nil, err
 	}

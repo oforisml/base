@@ -3,38 +3,38 @@ package aws
 import (
 	"fmt"
 
-	"github.com/aws/aws-sdk-go/service/acm"
+	acmTypes "github.com/aws/aws-sdk-go-v2/service/acm/types"
 )
 
 // CloudFrontFunctionValidationFailed is an error that occurs if response validation fails.
 type CloudFrontFunctionValidationFailed struct {
 	FunctionName string
-	Failures     *string
+	Failures     error
 }
 
 func (err CloudFrontFunctionValidationFailed) Error() string {
 	if err.Failures == nil {
 		return fmt.Sprintf("Validation failed for Function %s", err.FunctionName)
 	}
-	return fmt.Sprintf("Validation failed for Function %s.\nFailures:\n%s", err.FunctionName, *err.Failures)
+	return fmt.Sprintf("Validation failed for Function %s.\nFailures:\n%v", err.FunctionName, err.Failures)
 }
 
 // CertificateNotIssuedError is returned when the ACM Certificate status is not issued.
 type CertificateNotIssuedError struct {
 	certArn       string
-	currentStatus string
+	currentStatus acmTypes.CertificateStatus
 }
 
 func (err CertificateNotIssuedError) Error() string {
 	return fmt.Sprintf(
 		"Certificate %s not yet %s (current %s)",
 		err.certArn,
-		acm.CertificateStatusIssued,
+		acmTypes.CertificateStatusIssued,
 		err.currentStatus,
 	)
 }
 
-func NewCertificateNotIssuedError(certArn, currentStatus string) CertificateNotIssuedError {
+func NewCertificateNotIssuedError(certArn string, currentStatus acmTypes.CertificateStatus) CertificateNotIssuedError {
 	return CertificateNotIssuedError{certArn, currentStatus}
 }
 
