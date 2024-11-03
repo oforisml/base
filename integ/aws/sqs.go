@@ -1,13 +1,15 @@
 package aws
 
 import (
+	"context"
 	"fmt"
 	"strconv"
 	"strings"
 	"time"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/sqs"
+	"github.com/aws/aws-sdk-go-v2/service/sqs/types"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/testing"
@@ -30,7 +32,7 @@ func SendMessageToFifoQueueWithDeduplicationIdE(t testing.TestingT, awsRegion st
 		return err
 	}
 
-	res, err := sqsClient.SendMessage(&sqs.SendMessageInput{
+	res, err := sqsClient.SendMessage(context.Background(), &sqs.SendMessageInput{
 		MessageBody:            &message,
 		QueueUrl:               &queueURL,
 		MessageGroupId:         &messageGroupID,
@@ -45,18 +47,18 @@ func SendMessageToFifoQueueWithDeduplicationIdE(t testing.TestingT, awsRegion st
 		return err
 	}
 
-	logger.Log(t, fmt.Sprintf("Message id %s sent to queue %s", aws.StringValue(res.MessageId), queueURL))
+	logger.Log(t, fmt.Sprintf("Message id %s sent to queue %s", aws.ToString(res.MessageId), queueURL))
 	return nil
 }
 
-func ChangeMessageVisibility(t testing.TestingT, awsRegion string, queueURL string, receipt string, timeoutSeconds int64) {
+func ChangeMessageVisibility(t testing.TestingT, awsRegion string, queueURL string, receipt string, timeoutSeconds int32) {
 	err := ChangeMessageVisibilityE(t, awsRegion, queueURL, receipt, timeoutSeconds)
 	if err != nil {
 		t.Fatal(err)
 	}
 }
 
-func ChangeMessageVisibilityE(t testing.TestingT, awsRegion string, queueURL string, receipt string, timeoutSeconds int64) error {
+func ChangeMessageVisibilityE(t testing.TestingT, awsRegion string, queueURL string, receipt string, timeoutSeconds int32) error {
 	logger.Log(t, fmt.Sprintf("Setting message visibilityTimeout to %d on queue %s", timeoutSeconds, queueURL))
 
 	sqsClient, err := terratestaws.NewSqsClientE(t, awsRegion)
@@ -64,10 +66,10 @@ func ChangeMessageVisibilityE(t testing.TestingT, awsRegion string, queueURL str
 		return err
 	}
 
-	_, err = sqsClient.ChangeMessageVisibility(&sqs.ChangeMessageVisibilityInput{
+	_, err = sqsClient.ChangeMessageVisibility(context.Background(), &sqs.ChangeMessageVisibilityInput{
 		QueueUrl:          &queueURL,
 		ReceiptHandle:     &receipt,
-		VisibilityTimeout: aws.Int64(timeoutSeconds),
+		VisibilityTimeout: timeoutSeconds,
 	})
 
 	if err != nil {
@@ -102,13 +104,18 @@ func WaitForQueueMessage(t testing.TestingT, awsRegion string, queueURL string, 
 
 	for i := 0; i < cycles; i++ {
 		logger.Log(t, fmt.Sprintf("Waiting for message on %s (%ss)", queueURL, strconv.Itoa(i*cycleLength)))
-		result, err := sqsClient.ReceiveMessage(&sqs.ReceiveMessageInput{
-			QueueUrl:              aws.String(queueURL),
-			AttributeNames:        aws.StringSlice([]string{"SentTimestamp", "ApproximateReceiveCount"}),
-			MaxNumberOfMessages:   aws.Int64(1),
-			MessageAttributeNames: aws.StringSlice([]string{"All"}),
-			WaitTimeSeconds:       aws.Int64(int64(cycleLength)),
-		})
+		input := sqs.ReceiveMessageInput{
+			QueueUrl: aws.String(queueURL),
+			MessageSystemAttributeNames: []types.MessageSystemAttributeName{
+				types.MessageSystemAttributeNameSentTimestamp,           //"SentTimestamp",
+				types.MessageSystemAttributeNameApproximateReceiveCount, // "ApproximateReceiveCount",
+			},
+			MaxNumberOfMessages:   1,
+			MessageAttributeNames: []string{"All"},
+			WaitTimeSeconds:       int32(cycleLength),
+		}
+
+		result, err := sqsClient.ReceiveMessage(context.Background(), &input)
 
 		if err != nil {
 			return QueueMessageResponse{Error: err}
@@ -116,8 +123,9 @@ func WaitForQueueMessage(t testing.TestingT, awsRegion string, queueURL string, 
 
 		if len(result.Messages) > 0 {
 			logger.Log(t, fmt.Sprintf("Message %s received on %s", *result.Messages[0].MessageId, queueURL))
-			approximateReceiveCount, _ := strconv.ParseInt(*result.Messages[0].Attributes["ApproximateReceiveCount"], 10, 64)
-			sentTimestampMillis, _ := strconv.ParseInt(*result.Messages[0].Attributes["SentTimestamp"], 10, 64)
+			attr := result.Messages[0].Attributes
+			approximateReceiveCount, _ := strconv.ParseInt(attr["ApproximateReceiveCount"], 10, 64)
+			sentTimestampMillis, _ := strconv.ParseInt(attr["SentTimestamp"], 10, 64)
 			return QueueMessageResponse{
 				ReceiptHandle:           *result.Messages[0].ReceiptHandle,
 				MessageBody:             *result.Messages[0].Body,

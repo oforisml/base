@@ -1,0 +1,29 @@
+{
+  "name": "integ-aws-stepfunctions",
+  "type": "module",
+  "scripts": {
+    "call-aws-service": "bun run ./call-aws-service.ts",
+    "call-aws-service-sfn": "bun run ./call-aws-service-sfn.ts",
+    "call-aws-service-mwaa": "bun run ./call-aws-service-mwaa.ts",
+    "call-aws-service-mediapackagevod": "bun run ./call-aws-service-mediapackagevod.ts",
+    "call-aws-service-logs": "bun run ./call-aws-service-logs.ts",
+    "call-aws-service-efs": "bun run ./call-aws-service-efs.ts",
+    "sqs-send-message": "bun run ./sqs-send-message.ts",
+    "sfn-invoke-activity": "bun run ./sfn-invoke-activity",
+    "sfn-start-execution": "bun run ./sfn-start-execution",
+    "lambda-invoke-function": "bun run ./lambda-invoke-function",
+    "lambda-invoke-payload-only": "bun run ./lambda-invoke.payload.only",
+    "lambda-invoke": "bun run ./lambda-invoke",
+    "eventbus-put-events": "bun run ./eventbus-put-events"
+  },
+  "dependencies": {
+    "cdktf": "^0.20.8",
+    "constructs": "^10.3.0",
+    "@cdktf/provider-aws": "^19.24.1",
+    "@aws-sdk/client-sfn": "^3.682.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.3",
+    "typescript": "5.4.5"
+  }
+}

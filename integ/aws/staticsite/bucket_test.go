@@ -1,16 +1,12 @@
 package test
 
 import (
-	"context"
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
-	"github.com/environment-toolkit/go-synth"
 	"github.com/environment-toolkit/go-synth/executors"
-	"github.com/environment-toolkit/go-synth/models"
 	loggers "github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -19,207 +15,84 @@ import (
 	http_helper "github.com/gruntwork-io/terratest/modules/http-helper"
 	"github.com/gruntwork-io/terratest/modules/terraform"
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
-	"github.com/spf13/afero"
 )
 
 var terratestLogger = loggers.Default
 
-const (
-	// path from integ/aws/network to repo root
-	repoRoot = "../../../"
-	// copy the root as relative Path for bun install
-	relPath = "./envtio/base"
-)
-
-var (
-	// Directories to skip when copying files to the synth app fs
-	defaultCopyOptions = models.CopyOptions{
-		SkipDirs: []string{
-			"integ", // ignore self - prevent recursive loops
-			"src",   // package.json entrypoint is lib/index.js!
-			".git",
-			".github",
-			".vscode",
-			".projen",
-			"projenrc",
-			"node_modules",
-			"test-reports",
-			"dist",
-			"test",
-			"coverage",
-		},
-	}
-)
-
 // Test the Public Website bucket
 func TestPublicWebsiteBucket(t *testing.T) {
-	t.Parallel()
-	testApp := "public-website-bucket"
-	tfWorkingDir := filepath.Join("tf", testApp)
-	awsRegion := "us-east-1"
-
 	envVars := executors.EnvMap(os.Environ())
-	envVars["AWS_REGION"] = awsRegion
-	envVars["ENVIRONMENT_NAME"] = "test"
-	envVars["STACK_NAME"] = testApp
-
-	// At the end of the test, destroy all the resources
-	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
-		undeployUsingTerraform(t, tfWorkingDir)
-	})
-
-	// Synth the CDKTF app under test
-	test_structure.RunTestStage(t, "synth_app", func() {
-		synthApp(t, testApp, tfWorkingDir, envVars)
-	})
-
-	// Deploy using Terraform
-	test_structure.RunTestStage(t, "deploy_terraform", func() {
-		deployUsingTerraform(t, tfWorkingDir)
-	})
-
-	// Validate the function URL
-	test_structure.RunTestStage(t, "validate", func() {
-		testWebsiteUrl(t, tfWorkingDir)
-	})
-
-	// rename the environment name
-	envVars["ENVIRONMENT_NAME"] = "renamed"
-	test_structure.RunTestStage(t, "rename_app", func() {
-		synthApp(t, testApp, tfWorkingDir, envVars)
-	})
-
-	// confirm no changes in plan
-	test_structure.RunTestStage(t, "validate_rename", func() {
-		replanUsingTerraform(t, tfWorkingDir)
-	})
+	runStorageIntegrationTestWithRename(t, "public-website-bucket", "us-east-1", envVars, testWebsiteUrl)
 }
 
 // Test the Website Bucket with CDN
 func TestCdnWebsiteBucket(t *testing.T) {
-	t.Parallel()
 	testApp := "cdn-website-bucket"
-	tfWorkingDir := filepath.Join("tf", testApp)
-	awsRegion := "us-east-1"
 	hostname := "e2e.envt.io"
 
 	envVars := executors.EnvMap(os.Environ())
+	envVars["DNS_DOMAIN_NAME"] = hostname
+	// TODO: Test Curl with the domain name
+	envVars["DNS_ZONE_ID"] = "Z09421741DJE7FPT6K42I"
+
+	// save hostname for future stages
+	tfWorkingDir := filepath.Join("tf", testApp)
+	test_structure.SaveString(t, tfWorkingDir, "hostname", hostname)
+	runStorageIntegrationTestWithRename(t, testApp, "us-east-1", envVars, testCdnUrl)
+}
+
+// Ensure Website Bucket works
+func testWebsiteUrl(t *testing.T, tfWorkingDir string, _awsRegion string) {
+	// Load the Terraform Options saved by the earlier deploy_terraform stage
+	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+	websiteUrl := util.LoadOutputAttribute(t, terraformOptions, "website", "websiteUrl")
+	responseCode, _ := http_helper.HttpGet(t, fmt.Sprintf("http://%s", websiteUrl), nil)
+	assert.Equal(t, 200, responseCode)
+}
+
+// Ensure Cdn works (either through hostname from Certificate or CloudFront DomainName)
+func testCdnUrl(t *testing.T, tfWorkingDir string, _awsRegion string) {
+	hostname := test_structure.LoadString(t, tfWorkingDir, "hostname")
+	if hostname == "" {
+		terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
+		hostname = util.LoadOutputAttribute(t, terraformOptions, "cdn", "domainName")
+	}
+	responseCode, _ := http_helper.HttpGet(t, fmt.Sprintf("https://%s", hostname), nil)
+	assert.Equal(t, 200, responseCode)
+}
+
+// run integration test and validate renaming the environment works without replacing any resources
+func runStorageIntegrationTestWithRename(t *testing.T, testApp, awsRegion string, envVars map[string]string, validate func(t *testing.T, tfWorkingDir string, awsRegion string)) {
+	t.Parallel()
+	tfWorkingDir := filepath.Join("tf", testApp)
 	envVars["AWS_REGION"] = awsRegion
 	envVars["ENVIRONMENT_NAME"] = "test"
 	envVars["STACK_NAME"] = testApp
-	// TODO: Test Curl with the domain name
-	envVars["DNS_ZONE_ID"] = "Z09421741DJE7FPT6K42I"
-	envVars["DNS_DOMAIN_NAME"] = hostname
-	test_structure.SaveString(t, tfWorkingDir, "hostname", hostname)
 
-	// At the end of the test, destroy all the resources
 	defer test_structure.RunTestStage(t, "cleanup_terraform", func() {
-		undeployUsingTerraform(t, tfWorkingDir)
+		util.UndeployUsingTerraform(t, tfWorkingDir)
 	})
 
-	// Synth the CDKTF app under test
 	test_structure.RunTestStage(t, "synth_app", func() {
-		synthApp(t, testApp, tfWorkingDir, envVars)
+		util.SynthApp(t, testApp, tfWorkingDir, envVars, "site")
 	})
-
-	// Deploy using Terraform
 	test_structure.RunTestStage(t, "deploy_terraform", func() {
-		deployUsingTerraform(t, tfWorkingDir)
+		util.DeployUsingTerraform(t, tfWorkingDir, nil)
 	})
-
-	// Validate the CDN
 	test_structure.RunTestStage(t, "validate", func() {
-		testCdnUrl(t, tfWorkingDir)
+		validate(t, tfWorkingDir, awsRegion)
 	})
 
 	// rename the environment name
 	envVars["ENVIRONMENT_NAME"] = "renamed"
 	test_structure.RunTestStage(t, "rename_app", func() {
-		synthApp(t, testApp, tfWorkingDir, envVars)
+		util.SynthApp(t, testApp, tfWorkingDir, envVars, "site")
 	})
 
 	// confirm no changes in plan
 	test_structure.RunTestStage(t, "validate_rename", func() {
 		replanUsingTerraform(t, tfWorkingDir)
 	})
-}
-
-func synthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string) {
-	zapLogger := util.ForwardingLogger(t, terratestLogger)
-	ctx := context.Background()
-	// path from integ/aws/compute/apps/*.ts to repo root src
-	mainPathToSrc := filepath.Join("..", repoRoot, "src")
-	if _, err := os.Stat(filepath.Join(repoRoot, "lib")); err != nil {
-		t.Fatal("No lib folder, run pnpm compile before go test")
-	}
-	handlersDir := filepath.Join("apps", "site")
-	mainTsFile := filepath.Join("apps", testApp+".ts")
-	mainTsBytes, err := os.ReadFile(mainTsFile)
-	if err != nil {
-		t.Fatal("Failed to read" + mainTsFile)
-	}
-
-	thisFs := afero.NewOsFs()
-	app := synth.NewApp(executors.NewBunExecutor, zapLogger)
-	app.Configure(ctx, models.AppConfig{
-		EnvVars: env,
-		// copy site and @envtio/base to synth App fs
-		PreSetupFn: func(e models.Executor) error {
-			if err := e.CopyFrom(ctx, thisFs, handlersDir, "site", defaultCopyOptions); err != nil {
-				return err
-			}
-			return e.CopyFrom(ctx, thisFs, repoRoot, relPath, defaultCopyOptions)
-		},
-		Dependencies: map[string]string{
-			"@envtio/base": relPath,
-		},
-	})
-	// replace the path to src with relative package "@envtio/base"
-	mainTs := strings.ReplaceAll(string(mainTsBytes), mainPathToSrc, "@envtio/base")
-	err = app.Eval(ctx, thisFs, mainTs, "cdktf.out/stacks/"+testApp, tfWorkingDir)
-	if err != nil {
-		t.Fatal("Failed to synth app", err)
-	}
-}
-
-func deployUsingTerraform(t *testing.T, workingDir string) {
-	// Construct the terraform options with default retryable errors to handle the most common retryable errors in
-	// terraform testing.
-	terraformOptions := terraform.WithDefaultRetryableErrors(t, &terraform.Options{
-		TerraformDir:    workingDir,
-		TerraformBinary: "tofu",
-	})
-
-	// Save the Terraform Options struct, so future test stages can use it
-	test_structure.SaveTerraformOptions(t, workingDir, terraformOptions)
-	terraform.InitAndApply(t, terraformOptions)
-}
-
-func undeployUsingTerraform(t *testing.T, workingDir string) {
-	terraformOptions := test_structure.LoadTerraformOptions(t, workingDir)
-	terraform.Destroy(t, terraformOptions)
-}
-
-// Ensure Website Bucket works
-func testWebsiteUrl(t *testing.T, tfWorkingDir string) {
-	// Load the Terraform Options saved by the earlier deploy_terraform stage
-	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
-	outputMap := terraform.OutputMap(t, terraformOptions, "website")
-	responseCode, _ := http_helper.HttpGet(t, fmt.Sprintf("http://%s", outputMap["websiteUrl"]), nil)
-	assert.Equal(t, 200, responseCode)
-}
-
-// Ensure Cdn works
-func testCdnUrl(t *testing.T, tfWorkingDir string) {
-	hostname := test_structure.LoadString(t, tfWorkingDir, "hostname")
-	// Load the Terraform Options saved by the earlier deploy_terraform stage
-	terraformOptions := test_structure.LoadTerraformOptions(t, tfWorkingDir)
-	outputMap := terraform.OutputMap(t, terraformOptions, "cdn")
-	if hostname == "" {
-		hostname = outputMap["domainName"]
-	}
-	responseCode, _ := http_helper.HttpGet(t, fmt.Sprintf("https://%s", hostname), nil)
-	assert.Equal(t, 200, responseCode)
 }
 
 func replanUsingTerraform(t *testing.T, workingDir string) {

@@ -1,9 +1,14 @@
 include ../../common.mk
 
+all: ## Test all Edge
+	go test -v -timeout 30m ./...
+.PHONY: all
+
 url-rewrite-spa: ## Test Edge function for URL rewrite SPA
 	go test -v -timeout 30m ./... -run ^TestUrlRewriteSpa$
 .PHONY: url-rewrite-spa
 
+## NOTE: This test is quite flaky :/
 kvs-jwt-verify: ## Test Edge function for KVS JWT verify
 	go test -v -timeout 30m ./... -run ^TestKvsJwtVerify$
 .PHONY: kvs-jwt-verify

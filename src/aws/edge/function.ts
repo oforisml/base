@@ -104,12 +104,12 @@ export interface FunctionOutputs {
   /**
    * The name of the function.
    */
-  readonly functionName: string;
+  readonly name: string;
 
   /**
    * The ARN of the function.
    */
-  readonly functionArn: string;
+  readonly arn: string;
 
   /**
    * The Runtime of the function.
@@ -249,8 +249,8 @@ export class Function extends AwsBeaconBase implements IFunction {
     this.functionArn = this.resource.arn;
     this.functionStage = this.resource.etag;
     this._outputs = {
-      functionName: this.resource.name,
-      functionArn: this.resource.arn,
+      name: this.resource.name,
+      arn: this.resource.arn,
       functionRuntime: this.resource.runtime,
     };
   }

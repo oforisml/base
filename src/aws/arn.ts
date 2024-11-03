@@ -341,7 +341,7 @@ export class Arn {
   public static extractResourceName(arn: string, resourceType: string): string {
     const components = parseArnShape(arn);
     if (components === "token") {
-      return cdktf.Fn.index(cdktf.Fn.split(`:${resourceType}/`, arn), 1);
+      return cdktf.Fn.element(cdktf.Fn.split(`:${resourceType}/`, arn), 1);
     }
 
     // Apparently we could just parse this right away. Validate that we got the right
@@ -392,10 +392,10 @@ function parseTokenArn(arnToken: string, arnFormat: ArnFormat): ArnComponents {
 
   const components = cdktf.Fn.split(":", arnToken);
 
-  const partition = cdktf.Fn.index(components, 1).toString();
-  const service = cdktf.Fn.index(components, 2).toString();
-  const region = cdktf.Fn.index(components, 3).toString();
-  const account = cdktf.Fn.index(components, 4).toString();
+  const partition = cdktf.Fn.element(components, 1).toString();
+  const service = cdktf.Fn.element(components, 2).toString();
+  const region = cdktf.Fn.element(components, 3).toString();
+  const account = cdktf.Fn.element(components, 4).toString();
   let resource: string;
   let resourceName: string | undefined;
   let sep: string | undefined;
@@ -405,9 +405,9 @@ function parseTokenArn(arnToken: string, arnFormat: ArnFormat): ArnComponents {
     arnFormat === ArnFormat.COLON_RESOURCE_NAME
   ) {
     // we know that the 'resource' part will always be the 6th segment in this case
-    resource = cdktf.Fn.index(components, 5);
+    resource = cdktf.Fn.element(components, 5);
     if (arnFormat === ArnFormat.COLON_RESOURCE_NAME) {
-      resourceName = cdktf.Fn.index(components, 6);
+      resourceName = cdktf.Fn.element(components, 6);
       sep = ":";
     } else {
       resourceName = undefined;
@@ -416,16 +416,16 @@ function parseTokenArn(arnToken: string, arnFormat: ArnFormat): ArnComponents {
   } else {
     // we know that the 'resource' and 'resourceName' parts are separated by slash here,
     // so we split the 6th segment from the colon-separated ones with a slash
-    const lastComponents = cdktf.Fn.split("/", cdktf.Fn.index(components, 5));
+    const lastComponents = cdktf.Fn.split("/", cdktf.Fn.element(components, 5));
 
     if (arnFormat === ArnFormat.SLASH_RESOURCE_NAME) {
-      resource = cdktf.Fn.index(lastComponents, 0);
-      resourceName = cdktf.Fn.index(lastComponents, 1);
+      resource = cdktf.Fn.element(lastComponents, 0);
+      resourceName = cdktf.Fn.element(lastComponents, 1);
     } else {
       // arnFormat is ArnFormat.SLASH_RESOURCE_SLASH_RESOURCE_NAME,
       // which means there's an extra slash there at the beginning that we need to skip
-      resource = cdktf.Fn.index(lastComponents, 1);
-      resourceName = cdktf.Fn.index(lastComponents, 2);
+      resource = cdktf.Fn.element(lastComponents, 1);
+      resourceName = cdktf.Fn.element(lastComponents, 2);
     }
     sep = "/";
   }

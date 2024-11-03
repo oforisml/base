@@ -1,12 +1,12 @@
 package aws
 
 import (
+	"context"
 	"fmt"
 	"strings"
 
-	"github.com/aws/aws-sdk-go/aws"
-	"github.com/aws/aws-sdk-go/service/s3"
-	"github.com/aws/aws-sdk-go/service/s3/s3manager"
+	"github.com/aws/aws-sdk-go-v2/aws"
+	"github.com/aws/aws-sdk-go-v2/service/s3"
 	terratestaws "github.com/gruntwork-io/terratest/modules/aws"
 	"github.com/gruntwork-io/terratest/modules/logger"
 	"github.com/gruntwork-io/terratest/modules/testing"
@@ -22,7 +22,7 @@ func UploadS3File(t testing.TestingT, awsRegion string, s3BucketName string, key
 // UploadS3FileE uploads a file to the given S3 bucket with the given key and body and returns an error if there is any.
 func UploadS3FileE(t testing.TestingT, awsRegion string, s3BucketName string, key string, body string) error {
 	logger.Log(t, fmt.Sprintf("Uploading %s files to bucket %s", key, s3BucketName))
-	params := &s3manager.UploadInput{
+	params := &s3.PutObjectInput{
 		Bucket: aws.String(s3BucketName),
 		Key:    &key,
 		Body:   strings.NewReader(body),
@@ -30,7 +30,7 @@ func UploadS3FileE(t testing.TestingT, awsRegion string, s3BucketName string, ke
 
 	uploader := terratestaws.NewS3Uploader(t, awsRegion)
 
-	_, err := uploader.Upload(params)
+	_, err := uploader.Upload(context.Background(), params)
 	if err != nil {
 		return err
 	}
@@ -60,13 +60,13 @@ func AssertS3BucketNotificationExistsE(t testing.TestingT, region string, bucket
 }
 
 // GetS3BucketNotificationE fetches the given bucket's notification configuration
-func GetS3BucketNotificationE(t testing.TestingT, region string, bucketName string) (*s3.NotificationConfiguration, error) {
+func GetS3BucketNotificationE(t testing.TestingT, region string, bucketName string) (*s3.GetBucketNotificationConfigurationOutput, error) {
 	s3Client, err := terratestaws.NewS3ClientE(t, region)
 	if err != nil {
 		return nil, err
 	}
 
-	return s3Client.GetBucketNotificationConfiguration(&s3.GetBucketNotificationConfigurationRequest{
+	return s3Client.GetBucketNotificationConfiguration(context.Background(), &s3.GetBucketNotificationConfigurationInput{
 		Bucket: &bucketName,
 	})
 }
