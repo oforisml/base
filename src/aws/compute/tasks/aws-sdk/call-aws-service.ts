@@ -102,6 +102,7 @@ export class CallAwsService extends compute.TaskStateBase {
       }
     }
 
+    // https://github.com/aws/aws-cdk/pull/27623
     const iamServiceMap: Record<string, string> = {
       sfn: "states",
       cloudwatchlogs: "logs",

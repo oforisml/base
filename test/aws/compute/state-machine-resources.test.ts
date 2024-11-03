@@ -447,7 +447,7 @@ describe("State Machine Resources", () => {
             ],
             effect: "Allow",
             resources: [
-              'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${index(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
+              'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
             ],
           },
           {
@@ -607,7 +607,7 @@ describe("State Machine Resources", () => {
             actions: ["states:GetExecutionHistory"],
             effect: "Allow",
             resources: [
-              'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${index(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
+              'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.StateMachine_2E01A3A5.arn), 6)}:*',
             ],
           },
         ],

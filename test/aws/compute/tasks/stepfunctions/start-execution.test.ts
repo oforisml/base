@@ -124,7 +124,7 @@ test("Execute State Machine - Run Job", () => {
           actions: ["states:DescribeExecution", "states:StopExecution"],
           effect: "Allow",
           resources: [
-            'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${index(split(":", aws_sfn_state_machine.ChildStateMachine_9133117F.arn), 6)}*',
+            'arn:${data.aws_partition.Partitition.partition}:states:us-east-1:${data.aws_caller_identity.CallerIdentity.account_id}:execution:${element(split(":", aws_sfn_state_machine.ChildStateMachine_9133117F.arn), 6)}*',
           ],
         },
         {

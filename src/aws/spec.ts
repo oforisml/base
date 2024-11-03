@@ -392,7 +392,7 @@ export class AwsSpec extends SpecBase implements IAwsSpec {
    *
    * The list is slized by `maxCount` which defaults to 2.
    *
-   * Note: Must use `Fn.Index` to access the AZ names.
+   * Note: Must use `Fn.element` to access the AZ names.
    *
    * @param maxCount the maximum number of AZs to return
    */

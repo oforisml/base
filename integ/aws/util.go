@@ -70,6 +70,14 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 		t.Fatal("Failed to read" + mainTsFile)
 	}
 
+	// load dependencies to Synth app
+	var synthDependencies map[string]string
+	LoadSynthDependencies(t, tfWorkingDir, &synthDependencies)
+	if synthDependencies == nil {
+		synthDependencies = make(map[string]string)
+	}
+	synthDependencies["@envtio/base"] = relPath
+
 	thisFs := afero.NewOsFs()
 	app := synth.NewApp(executors.NewBunExecutor, zapLogger)
 	app.Configure(ctx, models.AppConfig{
@@ -84,9 +92,7 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 			}
 			return e.CopyFrom(ctx, thisFs, repoRoot, relPath, defaultCopyOptions)
 		},
-		Dependencies: map[string]string{
-			"@envtio/base": relPath,
-		},
+		Dependencies: synthDependencies,
 	})
 	// replace the path to src with relative package "@envtio/base"
 	mainTs := strings.ReplaceAll(string(mainTsBytes), mainPathToSrc, "@envtio/base")
@@ -94,6 +100,27 @@ func SynthApp(t *testing.T, testApp, tfWorkingDir string, env map[string]string,
 	if err != nil {
 		t.Fatal("Failed to synth app", err)
 	}
+}
+
+// SaveSynthDependencies serializes and saves map of dependencies at test time to the given path.
+func SaveSynthDependencies(t *testing.T, testFolder string, dependencies *map[string]string) {
+	path := formatSynthDependenciesPath(testFolder)
+	test_structure.SaveTestData(t, path, true, dependencies)
+}
+
+// LoadSynthDependencies reads a saved map of dependencies at synth time to the given path.
+func LoadSynthDependencies(t *testing.T, testFolder string, dependencies *map[string]string) {
+	path := formatSynthDependenciesPath(testFolder)
+	if !test_structure.IsTestDataPresent(t, path) {
+		terratestLogger.Logf(t, "[INFORMATION] No additional synth dependencies found at \"%v\".\n.", path)
+		return
+	}
+	test_structure.LoadTestData(t, path, dependencies)
+}
+
+// formatSynthDependenciesPath formats a path to save Synth Dependencies in the given folder.
+func formatSynthDependenciesPath(testFolder string) string {
+	return test_structure.FormatTestDataPath(testFolder, "app-dependencies.json")
 }
 
 func DeployUsingTerraform(t *testing.T, workingDir string, additionalRetryableErrors map[string]string) {

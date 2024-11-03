@@ -511,7 +511,8 @@ describe("IAM Role.fromRoleArn", () => {
   describe("imported with a dynamic ARN", () => {
     const dynamicValue = Lazy.stringValue({ produce: () => "role-arn" });
     // TF Expression getting role name from ARN
-    const roleName = '${index(split("/", index(split(":", role-arn), 5)), 1)}';
+    const roleName =
+      '${element(split("/", element(split(":", role-arn), 5)), 1)}';
 
     describe("into an env-agnostic stack", () => {
       beforeEach(() => {

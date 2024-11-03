@@ -13,7 +13,6 @@ export * from "./http/invoke";
 // export * from "./ecs/run-ecs-ec2-task";
 // export * from "./ecs/run-ecs-fargate-task";
 // export * from "./ecs/run-task";
-// export * from "./evaluate-expression";
 // export * from "./batch/run-batch-job";
 // export * from "./batch/submit-job";
 // export * from "./dynamodb/get-item";
@@ -23,3 +22,4 @@ export * from "./http/invoke";
 // export * from "./dynamodb/shared-types";
 // export * from "./eks/call";
 // export * from "./apigateway";
+// export * from "./evaluate-expression"; // missing SingletonLambda for this...

@@ -44,7 +44,7 @@ func StartSfnExecutionE(t testing.TestingT, awsRegion string, stateMachineArn st
 		return nil, err
 	}
 
-	res, err := sfnClient.StartExecution(context.TODO(), &sfn.StartExecutionInput{
+	res, err := sfnClient.StartExecution(context.Background(), &sfn.StartExecutionInput{
 		StateMachineArn: &stateMachineArn,
 		Input:           inputStrPtr,
 	})
@@ -56,19 +56,39 @@ func StartSfnExecutionE(t testing.TestingT, awsRegion string, stateMachineArn st
 	return res.ExecutionArn, nil
 }
 
+// StopSfnExecution stops the specified execution. This will fail the test if there is an error.
+func StopSfnExecution(t testing.TestingT, awsRegion string, executionArn string) {
+	require.NoError(t, StopSfnExecutionE(t, awsRegion, executionArn))
+}
+
+// StopSfnExecutionE stops the specified execution.
+func StopSfnExecutionE(t testing.TestingT, awsRegion string, executionArn string) error {
+	sfnClient, err := NewSfnclientE(t, awsRegion)
+	if err != nil {
+		return err
+	}
+
+	_, err = sfnClient.StopExecution(context.Background(), &sfn.StopExecutionInput{
+		ExecutionArn: &executionArn,
+	})
+	return err
+}
+
+// DescribeSfnExecution returns the description of the specified execution. This will fail the test if there is an error.
 func DescribeSfnExecution(t testing.TestingT, awsRegion string, executionArn string) *sfn.DescribeExecutionOutput {
 	res, err := DescribeSfnExecutionE(t, awsRegion, executionArn)
 	require.NoError(t, err)
 	return res
 }
 
+// DescribeSfnExecutionE returns the description of the specified execution.
 func DescribeSfnExecutionE(t testing.TestingT, awsRegion string, executionArn string) (*sfn.DescribeExecutionOutput, error) {
 	sfnClient, err := NewSfnclientE(t, awsRegion)
 	if err != nil {
 		return nil, err
 	}
 
-	return sfnClient.DescribeExecution(context.TODO(), &sfn.DescribeExecutionInput{
+	return sfnClient.DescribeExecution(context.Background(), &sfn.DescribeExecutionInput{
 		ExecutionArn: &executionArn,
 	})
 }
@@ -102,13 +122,16 @@ func WaitForSfnExecutionStatus(
 	maxRetries int,
 	sleepBetweenRetries time.Duration,
 ) *SfnExecutionOutput {
-	res, err := WaitForSfnExecutionE(t, awsRegion, executionArn, status, maxRetries, sleepBetweenRetries)
+	res, err := WaitForSfnExecutionStatusE(t, awsRegion, executionArn, status, maxRetries, sleepBetweenRetries)
+	if err != nil {
+		terratestLogger.Logf(t, "Failure cause: %s", res.Cause)
+	}
 	require.NoError(t, err)
 	return res
 }
 
-// WaitForSfnExecutionE waits for the specified execution to reach the desired status. this will throw error on timeout or non-retryable Errors.
-func WaitForSfnExecutionE(
+// WaitForSfnExecutionStatusE waits for the specified execution to reach the desired status. this will throw error on timeout or non-retryable Errors.
+func WaitForSfnExecutionStatusE(
 	t testing.TestingT,
 	awsRegion string,
 	executionArn string,
@@ -161,8 +184,46 @@ func WaitForSfnExecutionE(
 	return result, nil
 }
 
-// NewSfnclient returns a client for StepFunctions. This will fail the test and
-// stop execution if there is an error.
+// GetSfnActivity for a running Sate Machine.
+// Used by workers to retrieve a task (with the specified activity ARN)
+// which has been scheduled for execution by a running state machine.
+func GetSfnActivity(t testing.TestingT, awsRegion string, activityArn string, workerName *string) ActivityHandler {
+	res, err := GetSfnActivityE(t, awsRegion, activityArn, workerName)
+	require.NoError(t, err)
+	return res
+}
+
+// GetSfnActivityE for a running Sate Machine.
+// Used by workers to retrieve a task (with the specified activity ARN)
+// which has been scheduled for execution by a running state machine.
+func GetSfnActivityE(t testing.TestingT, awsRegion string, activityArn string, workerName *string) (ActivityHandler, error) {
+	sfnClient, err := NewSfnclientE(t, awsRegion)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := sfnClient.GetActivityTask(context.Background(), &sfn.GetActivityTaskInput{
+		ActivityArn: &activityArn,
+		WorkerName:  workerName,
+	})
+	if err != nil {
+		return nil, err
+	}
+	var input interface{}
+	if res.Input != nil {
+		err = json.Unmarshal([]byte(*res.Input), &input)
+		if err != nil {
+			return nil, err
+		}
+	}
+	if res.TaskToken == nil {
+		// potentially need to wait and retry?
+		return nil, fmt.Errorf("TaskToken is nil")
+	}
+	return NewActivityHandler(sfnClient, input, res.TaskToken), nil
+}
+
+// NewSfnclient returns a client for StepFunctions. This will fail the test if there is an error.
 func NewSfnclient(t testing.TestingT, awsRegion string) *sfn.Client {
 	sess, err := NewSfnclientE(t, awsRegion)
 	require.NoError(t, err)
@@ -171,7 +232,7 @@ func NewSfnclient(t testing.TestingT, awsRegion string) *sfn.Client {
 
 // NewSfnclientE returns a client for StepFunctions.
 func NewSfnclientE(t testing.TestingT, awsRegion string) (*sfn.Client, error) {
-	cfg, err := config.LoadDefaultConfig(context.TODO(), config.WithRegion(awsRegion))
+	cfg, err := config.LoadDefaultConfig(context.Background(), config.WithRegion(awsRegion))
 	if err != nil {
 		return nil, err
 	}
