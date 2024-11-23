@@ -14,3 +14,4 @@ export * as network from "./network";
 export * as storage from "./storage";
 export * as notify from "./notify";
 export * as edge from "./edge";
+export * as cloudwatch from "./cloudwatch";
